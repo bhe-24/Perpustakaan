@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perpustakaan Digital - Cendekia Aksara</title>
+    
+    <!-- Pustaka Eksternal -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <!-- SDK Firebase untuk Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpUWUIzPXIZN6rrNtsIqcL6VfOE2RLVl0",
+            authDomain: "mading-cf676.firebaseapp.com",
+            projectId: "mading-cf676",
+            storageBucket: "mading-cf676.appspot.com",
+            messagingSenderId: "72175203671",
+            appId: "1:72175203671:web:7a0676a55beb64bc96ba12"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.db = db;
+        window.getDocs = getDocs;
+        window.collection = collection;
+        window.query = query;
+        window.where = where;
+    </script>
+
+    <!-- Font dan Ikon -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <style>
+        :root {
+            --primary: #003366; --secondary: #005a9c; --accent: #f0f4f8; 
+            --gold: #d4af37; --border: #dee2e6;
+            --shadow-color: rgba(0, 51, 102, 0.1);
+            --text-dark: #333; --text-light: #666; --white: #fff;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--accent);
+            margin: 0;
+            color: var(--text-dark);
+        }
+        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
+        .card { background: var(--white); padding: 30px 40px; border-radius: 16px; box-shadow: 0 10px 40px var(--shadow-color); margin-bottom: 25px; }
+        h1, h2 { color: var(--primary); text-align: center; font-weight: 700; }
+        h1 { font-size: 2.2em; }
+        h2 { font-size: 1.8em; margin-top: 0; margin-bottom: 25px; }
+        
+        .btn {
+            width: 100%; padding: 14px; border: none; border-radius: 8px; color: var(--white);
+            background: linear-gradient(45deg, var(--secondary), var(--primary)); 
+            font-weight: 600; cursor: pointer; transition: all 0.2s ease;
+            display: inline-flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 90, 156, 0.3); }
+        .btn-secondary { background: #6c757d; }
+        .hidden { display: none !important; }
+
+        .view { animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 30px; }
+        .book-card { cursor: pointer; transition: transform 0.2s; }
+        .book-card:hover { transform: scale(1.05); }
+        .book-card img { width: 100%; height: 280px; object-fit: cover; border-radius: 8px; box-shadow: 0 8px 20px var(--shadow-color); }
+        .book-card h4 { margin: 10px 0 5px; font-size: 1em; color: var(--text-dark); }
+        .book-card p { margin: 0; font-size: 0.9em; color: var(--text-light); }
+
+        .detail-grid { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: flex-start; }
+        .detail-cover img { width: 100%; border-radius: 8px; box-shadow: 0 10px 30px var(--shadow-color); }
+        .detail-info h2 { text-align: left; }
+        .detail-info p { text-align: left; line-height: 1.8; }
+        .detail-actions { display: flex; gap: 15px; margin-top: 20px; }
+
+        #reader-view { text-align: center; padding: 50px; }
+
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+        .spinner { width: 50px; height: 50px; border: 5px solid var(--accent); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loading-overlay p { margin-top: 15px; font-weight: 600; color: var(--primary); }
+
+        .header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 15px;}
+        .header img { width: 70px; height: auto; }
+
+        @media (max-width: 768px) {
+            .detail-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-overlay"><div class="spinner"></div><p>Memuat Perpustakaan...</p></div>
+
+    <div class="container">
+        <!-- Tampilan Perpustakaan -->
+        <div id="library-view" class="view">
+            <div class="card">
+                <div class="header">
+                    <img src="https://i.imgur.com/HDC6SWw.png" alt="Logo Cendekia Aksara">
+                    <h1>Perpustakaan Digital</h1>
+                </div>
+                <div id="library-grid" class="library-grid">
+                    <!-- Kartu buku akan dimuat di sini oleh JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Tampilan Detail Buku -->
+        <div id="detail-view" class="view hidden">
+             <div class="card">
+                <button id="back-to-library-btn" class="btn btn-secondary" style="width:auto; float: right;">Kembali ke Perpustakaan</button>
+                <div id="book-detail-content" class="detail-grid">
+                    <div class="detail-cover"><img id="detail-cover-img" src=""></div>
+                    <div class="detail-info">
+                        <h2 id="detail-title"></h2>
+                        <p><strong>Penulis:</strong> <span id="detail-author"></span></p>
+                        <p><strong>Kategori:</strong> <span id="detail-category"></span></p>
+                        <p><strong>Terbit:</strong> <span id="detail-date"></span></p>
+                        <h3>Sinopsis</h3>
+                        <p id="detail-synopsis"></p>
+                        <div class="detail-actions">
+                            <button id="read-book-btn" class="btn" data-url=""><i class="fas fa-book-reader"></i> Baca Buku</button>
+                        </div>
+                    </div>
+                </div>
+             </div>
+        </div>
+
+        <!-- Tampilan Membaca -->
+        <div id="reader-view" class="view card hidden">
+            <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--primary);"></i>
+            <h2>Mengarahkan Anda ke Naskah</h2>
+            <p>Anda akan dialihkan ke Google Drive untuk membaca buku ini.</p>
+        </div>
+    </div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const views = {
+            library: document.getElementById('library-view'),
+            detail: document.getElementById('detail-view'),
+            reader: document.getElementById('reader-view'),
+        };
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const { db, collection, getDocs, query, where } = window;
+
+        const showLoading = () => loadingOverlay.classList.remove('hidden');
+        const hideLoading = () => loadingOverlay.classList.add('hidden');
+        const showView = (viewName) => {
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            if(views[viewName]) views[viewName].classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth'});
+        };
+
+        async function loadLibrary() {
+            showLoading();
+            const gridEl = document.getElementById('library-grid');
+            gridEl.innerHTML = '';
+            try {
+                const q = query(collection(db, "books"), where("published", "==", true));
+                const snapshot = await getDocs(q);
+                
+                const books = [];
+                snapshot.forEach(doc => books.push(doc.data()));
+                books.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+
+                if (books.length === 0) {
+                    gridEl.innerHTML = "<p>Belum ada buku yang diterbitkan.</p>";
+                } else {
+                    books.forEach(book => {
+                        const card = document.createElement('div');
+                        card.className = 'book-card';
+                        card.innerHTML = `<img src="${book.coverUrl}" alt="Cover"><h4>${book.title}</h4><p>${book.author}</p>`;
+                        card.onclick = () => showBookDetail(book);
+                        gridEl.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error("Gagal memuat perpustakaan: ", error);
+                gridEl.innerHTML = "<p>Gagal memuat data perpustakaan. Coba lagi nanti.</p>";
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showBookDetail(book) {
+            document.getElementById('detail-cover-img').src = book.coverUrl;
+            document.getElementById('detail-title').textContent = book.title;
+            document.getElementById('detail-author').textContent = book.author;
+            document.getElementById('detail-category').textContent = book.category;
+            document.getElementById('detail-date').textContent = new Date(book.publishDate).toLocaleDateString('id-ID', { dateStyle: 'long'});
+            document.getElementById('detail-synopsis').textContent = book.synopsis;
+            document.getElementById('read-book-btn').dataset.url = book.driveUrl;
+            showView('detail');
+        }
+
+        document.getElementById('back-to-library-btn').onclick = () => showView('library');
+        
+        document.getElementById('read-book-btn').addEventListener('click', (e) => {
+            const url = e.currentTarget.dataset.url;
+            if (url) {
+                showView('reader');
+                setTimeout(() => {
+                    window.open(url, '_blank');
+                    showView('detail');
+                }, 2000);
+            }
+        });
+
+        // Muat perpustakaan saat halaman pertama kali dibuka
+        loadLibrary();
+    });
+    </script>
+</body>
+</html>
