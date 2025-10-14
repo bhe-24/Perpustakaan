@@ -5,13 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Perpustakaan Digital - Cendekia Aksara</title>
     
-    <!-- Pustaka Eksternal -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
-    <!-- SDK Firebase untuk Firestore -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, addDoc, doc, runTransaction, orderBy, deleteDoc, updateDoc, increment, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyDpUWUIzPXIZN6rrNtsIqcL6VfOE2RLVl0",
@@ -24,204 +26,1114 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const auth = getAuth(app);
 
         window.db = db;
+        window.auth = auth;
         window.getDocs = getDocs;
         window.collection = collection;
         window.query = query;
         window.where = where;
+        window.addDoc = addDoc;
+        window.doc = doc;
+        window.runTransaction = runTransaction;
+        window.orderBy = orderBy;
+        window.deleteDoc = deleteDoc;
+        window.updateDoc = updateDoc;
+        window.increment = increment;
+        window.setDoc = setDoc;
+        window.onSnapshot = onSnapshot;
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.signOut = signOut;
     </script>
 
-    <!-- Font dan Ikon -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700;900&family=Nunito+Sans:wght@400;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <style>
         :root {
-            --primary: #003366; --secondary: #005a9c; --accent: #f0f4f8; 
-            --gold: #d4af37; --border: #dee2e6;
-            --shadow-color: rgba(0, 51, 102, 0.1);
-            --text-dark: #333; --text-light: #666; --white: #fff;
+            --color-mustard: #D4A017;
+            --color-nidji: #1E293B; 
+            --color-nidji-hover: #334155;
         }
-        * { box-sizing: border-box; }
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--accent);
-            margin: 0;
-            color: var(--text-dark);
-        }
-        .container { max-width: 1200px; margin: 20px auto; padding: 20px; }
-        .card { background: var(--white); padding: 30px 40px; border-radius: 16px; box-shadow: 0 10px 40px var(--shadow-color); margin-bottom: 25px; }
-        h1, h2 { color: var(--primary); text-align: center; font-weight: 700; }
-        h1 { font-size: 2.2em; }
-        h2 { font-size: 1.8em; margin-top: 0; margin-bottom: 25px; }
-        
-        .btn {
-            width: 100%; padding: 14px; border: none; border-radius: 8px; color: var(--white);
-            background: linear-gradient(45deg, var(--secondary), var(--primary)); 
-            font-weight: 600; cursor: pointer; transition: all 0.2s ease;
-            display: inline-flex; justify-content: center; align-items: center; gap: 8px;
-        }
-        .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 90, 156, 0.3); }
-        .btn-secondary { background: #6c757d; }
+        body { font-family: 'Nunito Sans', sans-serif; background-color: #FFFBF5; color: #43382c; }
+        .font-serif { font-family: 'Merriweather', serif; }
+        .view { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .hidden { display: none !important; }
-
-        .view { animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .library-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 30px; }
-        .book-card { cursor: pointer; transition: transform 0.2s; }
-        .book-card:hover { transform: scale(1.05); }
-        .book-card img { width: 100%; height: 280px; object-fit: cover; border-radius: 8px; box-shadow: 0 8px 20px var(--shadow-color); }
-        .book-card h4 { margin: 10px 0 5px; font-size: 1em; color: var(--text-dark); }
-        .book-card p { margin: 0; font-size: 0.9em; color: var(--text-light); }
-
-        .detail-grid { display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: flex-start; }
-        .detail-cover img { width: 100%; border-radius: 8px; box-shadow: 0 10px 30px var(--shadow-color); }
-        .detail-info h2 { text-align: left; }
-        .detail-info p { text-align: left; line-height: 1.8; }
-        .detail-actions { display: flex; gap: 15px; margin-top: 20px; }
-
-        #reader-view { text-align: center; padding: 50px; }
-
-        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 999; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-        .spinner { width: 50px; height: 50px; border: 5px solid var(--accent); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #loading-overlay p { margin-top: 15px; font-weight: 600; color: var(--primary); }
-
-        .header { display: flex; align-items: center; justify-content: center; margin-bottom: 20px; gap: 15px;}
-        .header img { width: 70px; height: auto; }
-
+        
+        .btn-gradient { background-image: linear-gradient(45deg, var(--color-nidji), var(--color-nidji-hover)); color: white; transition: all 0.3s ease; box-shadow: 0 4px 15px 0 rgba(30, 41, 59, 0.35); }
+        .btn-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 20px 0 rgba(30, 41, 59, 0.45); }
+        .btn-gradient:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .carousel::-webkit-scrollbar { height: 8px; } .carousel::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 4px; } .carousel::-webkit-scrollbar-thumb { background: var(--color-nidji); border-radius: 4px; } .carousel::-webkit-scrollbar-thumb:hover { background: var(--color-nidji-hover); }
+        .carousel { scroll-snap-type: x mandatory; } .carousel > div { scroll-snap-align: start; }
+        .notification-badge { background-color: #ef4444; color: white; border-radius: 9999px; padding: 0.1rem 0.6rem; font-size: 0.8rem; margin-left: 8px; position: absolute; top: 10px; right: 10px;}
+        .modal-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem;}
+        
+        #admin-container { font-family: 'Poppins', sans-serif; background-color: #f5f3ff; color: #333; }
+        #admin-container .card { background: #fff; padding: 30px 40px; border-radius: 16px; box-shadow: 0 10px 40px rgba(76, 29, 149, 0.1); margin-bottom: 25px; }
+        #admin-container h1, #admin-container h2, #admin-container h3 { color: var(--color-nidji); text-align: center; font-weight: 700; }
+        #admin-container .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; color: #fff; background: linear-gradient(45deg, var(--color-nidji), #334155); font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: inline-flex; justify-content: center; align-items: center; gap: 8px; }
+        #admin-container .btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(30, 41, 59, 0.3); }
+        #admin-container .btn-secondary { background: #6c757d; } #admin-container .btn-danger { background: #dc3545; }
+        
         @media (max-width: 768px) {
-            .detail-grid { grid-template-columns: 1fr; }
+            .header-btn-text { display: none; }
+            .header-container { flex-direction: column; }
+            .search-bar-container { order: 3; width: 100%; margin-top: 1rem; }
+            .header-actions { order: 2; }
+            .header-title { order: 1; }
         }
+        #admin-preview-view .preview-document { width: 100%; max-width: 210mm; min-height: 297mm; font-family: 'Times New Roman', serif; color: #000; box-shadow: 0 0 10px rgba(0,0,0,0.1);}
+        #admin-container .archive-list, #admin-container .submission-list, #admin-container .purchase-list { list-style: none; padding: 0; }
+        #admin-container .archive-item, #admin-container .submission-item, #admin-container .purchase-item { display: flex; align-items: center; gap: 15px; padding: 15px; border-bottom: 1px solid #f0f4f8; }
+        #admin-container .archive-item-info, #admin-container .submission-item-info, #admin-container .purchase-item-info { flex-grow: 1; }
     </style>
 </head>
 <body>
 
-    <div id="loading-overlay"><div class="spinner"></div><p>Memuat Perpustakaan...</p></div>
+    <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-90 z-50 flex flex-col justify-center items-center"><div class="w-14 h-14 border-4 border-gray-200 border-t-yellow-500 rounded-full animate-spin"></div><p class="mt-4 text-lg font-semibold text-yellow-600">Memuat...</p></div>
 
-    <div class="container">
-        <!-- Tampilan Perpustakaan -->
-        <div id="library-view" class="view">
-            <div class="card">
-                <div class="header">
-                    <img src="https://i.imgur.com/HDC6SWw.png" alt="Logo Cendekia Aksara">
-                    <h1>Perpustakaan Digital</h1>
-                </div>
-                <div id="library-grid" class="library-grid">
-                    <!-- Kartu buku akan dimuat di sini oleh JS -->
-                </div>
+    <div id="auth-container">
+        <div id="login-view" class="view min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+                <div class="text-center mb-8"><img src="https://i.imgur.com/HDC6SWw.png" alt="Logo Cendekia Aksara" class="w-20 h-20 mx-auto mb-4"><h1 class="text-3xl font-bold font-serif text-gray-800">Selamat Datang</h1><p class="text-gray-500">Masuk untuk mengakses perpustakaan.</p></div>
+                <form id="login-form" class="space-y-4">
+                    <div><label for="email" class="block text-sm font-medium text-gray-600 mb-1">Email</label><input type="email" id="email" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition" placeholder="contoh@email.com"></div>
+                    <div><label for="password" class="block text-sm font-medium text-gray-600 mb-1">Password</label><input type="password" id="password" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition" placeholder="••••••••"></div>
+                    <p id="login-error" class="text-red-500 text-sm hidden"></p>
+                    <div class="pt-4"><button type="submit" class="w-full font-bold py-3 rounded-lg btn-gradient">Masuk</button></div>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-6">Belum punya akun? <button id="show-register-btn" class="font-semibold text-yellow-600 hover:underline">Silakan daftar</button></p>
             </div>
         </div>
-
-        <!-- Tampilan Detail Buku -->
-        <div id="detail-view" class="view hidden">
-             <div class="card">
-                <button id="back-to-library-btn" class="btn btn-secondary" style="width:auto; float: right;">Kembali ke Perpustakaan</button>
-                <div id="book-detail-content" class="detail-grid">
-                    <div class="detail-cover"><img id="detail-cover-img" src=""></div>
-                    <div class="detail-info">
-                        <h2 id="detail-title"></h2>
-                        <p><strong>Penulis:</strong> <span id="detail-author"></span></p>
-                        <p><strong>Kategori:</strong> <span id="detail-category"></span></p>
-                        <p><strong>Terbit:</strong> <span id="detail-date"></span></p>
-                        <h3>Sinopsis</h3>
-                        <p id="detail-synopsis"></p>
-                        <div class="detail-actions">
-                            <button id="read-book-btn" class="btn" data-url=""><i class="fas fa-book-reader"></i> Baca Buku</button>
-                        </div>
-                    </div>
-                </div>
-             </div>
-        </div>
-
-        <!-- Tampilan Membaca -->
-        <div id="reader-view" class="view card hidden">
-            <i class="fas fa-spinner fa-spin fa-3x" style="color: var(--primary);"></i>
-            <h2>Mengarahkan Anda ke Naskah</h2>
-            <p>Anda akan dialihkan ke Google Drive untuk membaca buku ini.</p>
+        <div id="register-view" class="view hidden min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl">
+                <h2 class="text-2xl font-bold font-serif text-center text-gray-800 mb-6">Buat Akun Baru</h2>
+                <form id="register-form" class="space-y-4">
+                    <input type="text" id="register-name" placeholder="Nama Lengkap" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                    <input type="number" id="register-age" placeholder="Usia" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                    <input type="tel" id="register-whatsapp" placeholder="Nomor WhatsApp" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                    <input type="email" id="register-email" placeholder="Email" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                    <input type="password" id="register-password" placeholder="Password" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition">
+                    <p id="register-error" class="text-red-500 text-sm hidden"></p>
+                    <button type="submit" class="w-full font-bold py-3 rounded-lg btn-gradient">Daftar</button>
+                </form>
+                <p class="text-center text-sm text-gray-500 mt-6">Sudah punya akun? <button id="show-login-btn" class="font-semibold text-yellow-600 hover:underline">Silakan masuk</button></p>
+            </div>
         </div>
     </div>
     
+    <div id="app-container" class="hidden">
+        <div id="user-views">
+            <div class="container mx-auto p-4 md:p-8">
+                <div id="library-view" class="view">
+                     <header class="header-container flex justify-between items-center mb-4 gap-4">
+                        <div class="header-title flex items-center gap-4"><img src="https://i.imgur.com/HDC6SWw.png" alt="Logo Cendekia Aksara" class="w-16 h-16"><div><h1 class="text-3xl md:text-4xl font-bold font-serif text-gray-800">Perpustakaan Digital</h1><p class="text-gray-500">Cendekia Aksara</p></div></div>
+                        <div class="header-actions flex items-center gap-2 md:gap-4">
+                            <button id="my-archive-btn" class="font-bold py-2 px-3 rounded-lg flex items-center gap-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-100"><i class="fas fa-book-bookmark"></i><span class="header-btn-text">Arsipku</span></button>
+                            <button id="admin-panel-btn" class="hidden bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-3 rounded-lg transition duration-300 flex items-center gap-2"><i class="fas fa-user-shield"></i><span class="header-btn-text">Admin</span></button>
+                            <button id="publish-flow-btn" class="font-bold py-2 px-3 rounded-lg flex items-center gap-2 btn-gradient"><i class="fas fa-upload"></i><span class="header-btn-text">Terbitkan</span></button>
+                            <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-3 rounded-lg transition duration-300 flex items-center gap-2"><i class="fas fa-sign-out-alt"></i></button>
+                        </div>
+                    </header>
+                    <div class="search-bar-container w-full md:w-1/2 mx-auto my-6"><div class="relative"><span class="absolute inset-y-0 left-0 flex items-center pl-3"><i class="fas fa-search text-gray-400"></i></span><input type="search" id="user-search-bar" placeholder="Cari judul atau penulis..." class="w-full py-2 pl-10 pr-4 border border-gray-300 rounded-full focus:ring-2 focus:ring-yellow-500 focus:outline-none"></div></div>
+                    <main class="space-y-12">
+                         <section><h2 class="text-2xl font-bold font-serif text-gray-700 mb-4">Paling Populer</h2><div id="most-popular-books-carousel" class="carousel flex gap-6 overflow-x-auto pb-4"></div></section>
+                         <section><h2 class="text-2xl font-bold font-serif text-gray-700 mb-4">Buku Terbaru</h2><div id="latest-books-carousel" class="carousel flex gap-6 overflow-x-auto pb-4"></div></section>
+                         <section><h2 class="text-2xl font-bold font-serif text-gray-700 mb-4">Etalase Berbayar</h2><div id="paid-books-carousel" class="carousel flex gap-6 overflow-x-auto pb-4"></div></section>
+                    </main>
+                </div>
+                
+                <div id="user-archive-view" class="view hidden">
+                    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                        <button id="back-to-library-from-archive-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition mb-6"><i class="fas fa-arrow-left mr-2"></i> Kembali ke Perpustakaan</button>
+                        <h2 class="text-3xl font-bold font-serif text-gray-800 mb-4">Arsip Karyaku</h2>
+                        <p class="text-gray-500 mb-6">Ini adalah daftar karyamu yang telah berhasil diterbitkan di Perpustakaan Digital Cendekia Aksara.</p>
+                        <div id="user-archive-list" class="space-y-4"></div>
+                    </div>
+                </div>
+
+
+                <div id="detail-view" class="view hidden">
+                    <div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+                        <button id="back-to-library-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition mb-4"><i class="fas fa-arrow-left mr-2"></i> Kembali</button>
+                        <div id="book-detail-content" class="grid md:grid-cols-3 gap-8 mt-4">
+                            <div class="md:col-span-1"><img id="detail-cover-img" src="" alt="Book Cover" class="w-full rounded-lg shadow-lg"></div>
+                            <div class="md:col-span-2">
+                                <h2 id="detail-title" class="text-3xl font-bold font-serif text-gray-800"></h2>
+                                <p class="text-lg text-gray-600">oleh <span id="detail-author"></span></p>
+                                <div class="flex items-center gap-4 my-4 text-gray-500"><span><i class="fas fa-eye mr-1"></i> <span id="detail-readers"></span> Pembaca</span><span><i class="fas fa-tag mr-1"></i> <span id="detail-category"></span></span></div>
+                                <h3 class="font-bold text-xl font-serif mt-6 mb-2">Sinopsis</h3>
+                                <p id="detail-synopsis" class="text-gray-600"></p>
+                                <div id="detail-actions" class="mt-8"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="publish-terms-view" class="view hidden"><div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg"><h2 class="text-3xl font-bold font-serif text-gray-800 mb-4">Syarat & Ketentuan Penerbitan</h2><div class="prose max-w-none text-gray-600 space-y-4"><p>Sebelum mengajukan naskah, mohon baca dan pahami ketentuan berikut:</p><ul><li>Naskah harus karya asli, bukan plagiat atau terjemahan tanpa izin.</li><li>Genre yang tidak kami terima: SARA, pornografi, ujaran kebencian.</li><li>Naskah dalam format .docx dan diunggah ke Google Drive dengan akses "siapa saja yang memiliki link".</li><li>Tim Cendekia Aksara akan mereview naskah Anda dalam kurun waktu <strong>maksimal 2 bulan</strong>.</li><li>Anda hanya dapat mengajukan <strong>satu naskah</strong> dalam satu waktu. Pengajuan baru dapat dilakukan setelah naskah sebelumnya selesai direview.</li></ul><p>Dengan melanjutkan, Anda setuju dengan semua syarat dan ketentuan di atas.</p></div><div class="mt-8 flex gap-4"><button id="back-from-terms-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition">Kembali</button><button id="next-to-packages-btn" class="font-bold py-2 px-4 rounded-lg btn-gradient">Lanjut ke Pilih Paket</button></div></div></div>
+                
+                <div id="publish-packages-view" class="view hidden"><div class="max-w-4xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg"><h2 class="text-3xl font-bold font-serif text-gray-800 mb-6 text-center">Pilih Paket Penerbitan</h2><div class="grid md:grid-cols-2 gap-8"><div class="border p-6 rounded-lg text-center flex flex-col"><h3>Paket Gratis</h3><p class="text-2xl font-bold my-2">Rp 0</p><ul class="text-left space-y-2 text-gray-600 flex-grow"><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Bantuan publikasi digital.</li><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Desain sampul standar dari C.A.</li><li><i class="fas fa-times-circle text-red-500 mr-2"></i>Tanpa proses editing dari tim.</li><li><i class="fas fa-times-circle text-red-500 mr-2"></i>Tanpa promosi khusus.</li></ul><button class="select-package-btn mt-6 font-bold py-2 px-4 rounded-lg bg-gray-200 hover:bg-gray-300" data-package="gratis">Pilih Paket Gratis</button></div><div class="border-2 border-yellow-500 p-6 rounded-lg text-center flex flex-col shadow-lg"><h3>Paket Cendekia</h3><p class="text-2xl font-bold my-2">Rp 45.000</p><ul class="text-left space-y-2 text-gray-600 flex-grow"><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Semua di Paket Gratis.</li><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Editing & layout oleh tim C.A.</li><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Desain sampul eksklusif.</li><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Promosi di etalase berbayar.</li><li><i class="fas fa-check-circle text-green-500 mr-2"></i>Maksimal 100 halaman.</li></ul><button class="select-package-btn mt-6 font-bold py-2 px-4 rounded-lg btn-gradient" data-package="berbayar">Pilih Paket Cendekia</button></div></div><button id="back-from-packages-btn" class="mt-8 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-lg transition">Kembali</button></div></div>
+
+                <div id="publish-form-view" class="view hidden"><div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg"><h2 class="text-3xl font-bold font-serif text-gray-800 mb-4">Formulir Pengajuan Naskah</h2><form id="publish-form" class="space-y-4"><input type="hidden" id="selected-package"><div><label for="user-book-title" class="block text-sm font-medium text-gray-600 mb-1">Judul Naskah</label><input type="text" id="user-book-title" required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition"></div><div><label for="user-drive-link" class="block text-sm font-medium text-gray-600 mb-1">Link Naskah Google Drive (.docx)</label><input type="url" id="user-drive-link" placeholder="https://drive.google.com/file/d/..." required class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:outline-none transition"></div><div class="pt-4 flex gap-4"><button type="button" id="back-from-form-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg transition">Kembali</button><button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition">Ajukan Naskah</button></div></form></div></div>
+
+                <div id="publish-status-view" class="view hidden"><div class="max-w-3xl mx-auto bg-white p-6 md:p-8 rounded-2xl shadow-lg text-center"><h2 class="text-3xl font-bold font-serif text-gray-800 mb-4">Status Pengajuan Naskah Anda</h2>
+                    <div id="status-content"></div>
+                </div></div>
+            </div>
+        </div>
+        
+        <div id="admin-container" class="hidden">
+            <div class="container mx-auto p-4 md:p-8">
+                <div id="admin-menu-view" class="admin-view view card"><h1>Menu Utama Admin</h1><p class="text-center mb-6">Pilih salah satu menu di bawah.</p><div class="menu-options grid grid-cols-1 md:grid-cols-2 gap-4"><button id="admin-goto-submissions-btn" class="btn relative"><i class="fas fa-inbox fa-fw"></i> Pengajuan Naskah <span id="submissions-badge" class="notification-badge hidden"></span></button><button id="admin-goto-purchases-btn" class="btn relative"><i class="fas fa-shopping-cart fa-fw"></i> Persetujuan Pembelian <span id="purchases-badge" class="notification-badge hidden"></span></button><button id="admin-goto-form-btn" class="btn"><i class="fas fa-edit fa-fw"></i> Formulir Buku Baru</button><button id="admin-goto-archive-btn" class="btn"><i class="fas fa-archive fa-fw"></i> Arsip Buku Terbit</button><button id="exit-admin-btn" class="btn btn-secondary col-span-1 md:col-span-2"><i class="fas fa-swatchbook fa-fw"></i> Kembali ke Perpustakaan</button></div></div>
+                <div id="admin-submissions-view" class="admin-view view hidden"><div class="card"><button class="back-to-admin-menu-btn btn btn-secondary" style="width:auto; float: right;">Kembali</button><h2><i class="fas fa-inbox"></i> Tinjau Pengajuan Naskah</h2><ul id="submission-list" class="submission-list mt-4"></ul></div></div>
+                
+                <div id="admin-submission-detail-view" class="admin-view view hidden">
+                    <div class="card">
+                        <button id="back-to-submissions-list-btn" class="btn btn-secondary" style="width:auto; float: right;">Kembali</button>
+                        <h2><i class="fas fa-file-alt"></i> Detail Pengajuan Naskah</h2>
+                        <div id="submission-detail-content" class="mt-6 space-y-3 text-left"></div>
+                        <div id="submission-status-changer" class="mt-6"></div>
+                    </div>
+                </div>
+
+                <div id="admin-purchases-view" class="admin-view view hidden"><div class="card"><button class="back-to-admin-menu-btn btn btn-secondary" style="width:auto; float: right;">Kembali</button><h2><i class="fas fa-shopping-cart"></i> Tinjau Permintaan Pembelian</h2><ul id="purchase-list" class="purchase-list mt-4"></ul></div></div>
+                <div id="admin-form-view" class="admin-view view hidden">
+                    <div class="card">
+                        <button class="back-to-admin-menu-btn btn btn-secondary" style="width:auto; float: right;">Kembali</button>
+                        <h2><i class="fas fa-edit"></i> Formulir Buku Baru</h2>
+                        <form id="admin-book-form" class="space-y-4 mt-6">
+                             <input type="hidden" id="admin-book-firestore-id">
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div><label>Judul Buku</label><input type="text" id="admin-book-title" required class="w-full border border-gray-300 rounded-lg p-2"></div>
+                                <div><label>Nama Penulis</label><input type="text" id="admin-author-name" required class="w-full border border-gray-300 rounded-lg p-2"></div>
+                             </div>
+                             <div><label>Sinopsis</label><textarea id="admin-synopsis" rows="5" required class="w-full border border-gray-300 rounded-lg p-2"></textarea></div>
+                             <div class="flex items-start gap-4">
+                                <div class="flex-grow"><label>URL Cover Buku (Imgur)</label><input type="url" id="admin-cover-url" required class="w-full border border-gray-300 rounded-lg p-2"></div>
+                                <img id="admin-cover-preview" src="https://placehold.co/150x225/e0e0e0/777?text=Cover" alt="Cover Preview" class="w-24 h-36 object-cover rounded-md bg-gray-200">
+                             </div>
+                             <div><label>URL Naskah (Google Drive)</label><input type="url" id="admin-drive-url" required class="w-full border border-gray-300 rounded-lg p-2"></div>
+                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div><label>Kategori</label><select id="admin-category" class="w-full border border-gray-300 rounded-lg p-2"><option>Cerpen</option><option>Puisi</option><option>Novel</option><option>Esai</option></select></div>
+                                 <div><label>Tanggal Terbit</label><input type="date" id="admin-publish-date" required class="w-full border border-gray-300 rounded-lg p-2"></div>
+                             </div>
+                             <div class="flex items-center gap-4"><input type="checkbox" id="admin-is-paid" class="h-5 w-5"><label for="admin-is-paid">Buku ini Berbayar?</label></div>
+                             <div id="admin-price-container" class="hidden"><label>Harga (Rp)</label><input type="number" id="admin-price" class="w-full border border-gray-300 rounded-lg p-2"></div>
+                             <button type="submit" class="btn btn-gradient w-full">Simpan & Pratinjau</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="admin-archive-view" class="admin-view view hidden"><div class="card"><button class="back-to-admin-menu-btn btn btn-secondary" style="width:auto; float: right;">Kembali</button><h2><i class="fas fa-archive"></i> Arsip Buku Terbit</h2><input type="text" id="search-archive" placeholder="Ketik judul atau penulis..." class="w-full border border-gray-300 rounded-lg p-2 my-4"><ul id="archive-list" class="archive-list"></ul></div></div>
+                <div id="admin-preview-view" class="admin-view view hidden">
+                    <div class="card">
+                        <button class="back-to-admin-menu-btn btn btn-secondary" style="width:auto; float: right;">Kembali</button>
+                        <h2 class="mb-4">Pratinjau Dokumen</h2>
+                        <div id="form-preview-container" class="preview-document bg-white p-8 border mx-auto"></div>
+                         <div class="mt-6 border-t pt-6 flex flex-col sm:flex-row gap-4 justify-center">
+                            <button id="download-form-btn" class="btn btn-gradient flex-1"><i class="fas fa-download"></i> Unduh PDF</button>
+                            <button id="publish-btn" class="btn btn-gradient flex-1" disabled><i class="fas fa-upload"></i> Publikasikan</button>
+                        </div>
+                        <div class="flex justify-center items-center gap-2 mt-4">
+                             <input type="checkbox" id="data-confirmation" class="h-5 w-5">
+                             <label for="data-confirmation" class="text-sm">Saya menyatakan data sudah benar</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="qrcode-modal" class="modal-container hidden"><div class="bg-white p-6 rounded-lg max-w-xs w-full text-center shadow-xl"><h3 class="font-bold text-lg mb-4 text-gray-800">Kode QR Perpustakaan</h3><div id="modal-qrcode-display" class="my-4 flex justify-center p-4 bg-gray-100 rounded"></div><div class="mt-4 flex gap-4"><button class="w-full py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-800" id="close-qrcode-modal">Tutup</button><button class="w-full py-2 rounded-lg btn-gradient" id="download-qrcode-btn">Unduh</button></div></div></div>
+        <div id="delete-modal" class="modal-container hidden"><div class="bg-white p-6 rounded-lg max-w-sm w-full text-center shadow-xl"><h3>Konfirmasi Hapus</h3><p>Anda yakin ingin menghapus buku "<span id="delete-book-title"></span>"?</p><div class="flex gap-4 mt-4"><button id="cancel-delete-btn" class="w-full py-2 rounded-lg bg-gray-300 hover:bg-gray-400 text-gray-800">Batal</button><button id="confirm-delete-btn" class="w-full py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white">Ya, Hapus</button></div></div></div>
+
+    </div>
+    
+    <button id="help-btn" class="fixed bottom-6 right-6 bg-yellow-500 hover:bg-yellow-600 text-white w-16 h-16 rounded-full shadow-lg flex items-center justify-center text-3xl transition duration-300 transform hover:scale-110 z-30"><i class="fas fa-question"></i></button>
+    <div id="help-modal" class="fixed inset-0 bg-black bg-opacity-60 z-40 flex justify-center items-center p-4 hidden"><div class="bg-white max-w-lg w-full p-8 rounded-2xl shadow-lg relative text-left"><button id="close-help-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-800 text-2xl"><i class="fas fa-times"></i></button><h3 id="help-modal-title" class="text-2xl font-bold font-serif text-gray-800 mb-4"></h3><div id="help-modal-body" class="space-y-4 text-gray-600"></div></div></div>
+
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const views = {
-            library: document.getElementById('library-view'),
+        // [RESTORED] All view and element declarations
+        const views = { 
+            login: document.getElementById('login-view'), 
+            register: document.getElementById('register-view'), 
+            library: document.getElementById('library-view'), 
             detail: document.getElementById('detail-view'),
-            reader: document.getElementById('reader-view'),
+            userArchive: document.getElementById('user-archive-view'),
+            publishTerms: document.getElementById('publish-terms-view'), 
+            publishPackages: document.getElementById('publish-packages-view'), 
+            publishForm: document.getElementById('publish-form-view'), 
+            publishStatus: document.getElementById('publish-status-view'), 
+            adminMenu: document.getElementById('admin-menu-view'), 
+            adminSubmissions: document.getElementById('admin-submissions-view'), 
+            adminSubmissionDetail: document.getElementById('admin-submission-detail-view'),
+            adminPurchases: document.getElementById('admin-purchases-view'), 
+            adminForm: document.getElementById('admin-form-view'), 
+            adminArchive: document.getElementById('admin-archive-view'), 
+            adminPreview: document.getElementById('admin-preview-view'), 
         };
+        const authContainer = document.getElementById('auth-container');
+        const appContainer = document.getElementById('app-container');
+        const userViewsContainer = document.getElementById('user-views');
+        const adminViewsContainer = document.getElementById('admin-container');
         const loadingOverlay = document.getElementById('loading-overlay');
-        const { db, collection, getDocs, query, where } = window;
+        const { db, auth, getDocs, collection, query, where, addDoc, doc, runTransaction, orderBy, deleteDoc, updateDoc, increment, setDoc, onSnapshot, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } = window;
+        let currentUser = null; 
+        let userSubmission = null; 
+        let allBooks = []; 
+        let currentAdminBookData = null; 
+        let isAdminEditMode = false;
+        let submissionUnsubscribe = null;
+        let countdownInterval = null;
+        let signatureImage = null;
+        let stampImage = null;
 
-        const showLoading = () => loadingOverlay.classList.remove('hidden');
-        const hideLoading = () => loadingOverlay.classList.add('hidden');
-        const showView = (viewName) => {
-            Object.values(views).forEach(v => v.classList.add('hidden'));
-            if(views[viewName]) views[viewName].classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth'});
+        const showLoading = () => loadingOverlay.style.display = 'flex';
+        const hideLoading = () => loadingOverlay.style.display = 'none';
+
+       async function preloadAdminAssets() {
+            const loadImage = (src) => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+            try {
+                stampImage = await loadImage('https://i.imgur.com/YvrNYRw.png');
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 200;
+                canvas.height = 80;
+                ctx.strokeStyle = '#000055';
+                ctx.lineWidth = 2;
+                ctx.font = '30px "Brush Script MT", cursive';
+                ctx.scale(1, 0.8);
+                ctx.fillText('C. Aksara', 10, 50);
+                signatureImage = new Image();
+                signatureImage.src = canvas.toDataURL();
+
+            } catch (e) {
+                console.error("Gagal memuat aset admin:", e);
+            }
+        }
+
+
+        function updateHelpContent(viewName) {
+            const titleEl = document.getElementById('help-modal-title');
+            const bodyEl = document.getElementById('help-modal-body');
+            let title = "Bantuan";
+            let content = "";
+            switch(viewName) {
+                case 'library': title = "Panduan Halaman Utama"; content = `<p><strong class="text-yellow-600">Jelajahi Buku:</strong> Gulir ke kanan pada setiap kategori untuk melihat koleksi buku yang ada.</p><p><strong class="text-yellow-600">Cari Cepat:</strong> Gunakan kotak pencarian di bagian atas untuk menemukan buku berdasarkan judul atau nama penulis.</p><p><strong class="text-yellow-600">Terbitkan Karyamu:</strong> Ingin karyamu ada di sini? Klik tombol "Terbitkan" untuk memulai prosesnya!</p>`; break;
+                case 'detail': title = "Panduan Halaman Detail"; content = `<p><strong class="text-yellow-600">Sinopsis:</strong> Baca ringkasan cerita untuk mengetahui gambaran umum buku sebelum membaca atau membeli.</p><p><strong class="text-yellow-600">Membaca Gratis:</strong> Jika buku ini gratis, tombol "Baca Sekarang" akan langsung membawamu ke naskah digitalnya.</p><p><strong class="text-yellow-600">Buku Berbayar:</strong> Untuk buku berbayar, klik tombol "Ajukan Pembelian". Admin akan meninjau permintaanmu.</p>`; break;
+                case 'publishTerms': case 'publishPackages': title = "Panduan Paket Penerbitan"; content = `<p><strong class="text-yellow-600">Pahami Aturan:</strong> Baca syarat & ketentuan dengan seksama sebelum melanjutkan.</p><p><strong class="text-yellow-600">Pilih Paket:</strong> Tentukan paket penerbitan yang paling sesuai dengan kebutuhanmu, Gratis atau Cendekia.</p><p><strong class="text-yellow-600">Lanjut Formulir:</strong> Setelah memilih paket, kamu akan diarahkan ke formulir pengajuan naskah.</p>`; break;
+                case 'publishForm': case 'publishStatus': title = "Panduan Pengajuan Naskah"; content = `<p><strong class="text-yellow-600">Isi Data:</strong> Lengkapi semua kolom dengan data yang benar, terutama link Google Drive.</p><p><strong class="text-yellow-600">Cek Status:</strong> Setelah mengirim, kamu bisa mengecek status pengajuanmu di halaman ini kapan saja. Perubahan status dari admin akan langsung terlihat di sini.</p><p><strong class="text-yellow-600">Naskah Ditolak:</strong> Jika ditolak, kamu akan melihat alasannya dan bisa mengajukan ulang setelah 1 minggu.</p>`; break;
+                case 'adminMenu': title = "Panduan Menu Admin"; content = `<p><strong class="text-yellow-600">Pengajuan Naskah:</strong> Tinjau, terima, atau tolak naskah yang dikirim oleh pengguna.</p><p><strong class="text-yellow-600">Persetujuan Pembelian:</strong> Kelola permintaan pembelian buku berbayar dari pengguna.</p><p><strong class="text-yellow-600">Formulir Buku Baru:</strong> Tambah buku baru ke perpustakaan secara manual atau dari naskah yang diterima.</p><p><strong class="text-yellow-600">Arsip Buku:</strong> Lihat dan kelola semua buku yang sudah ada di perpustakaan.</p>`; break;
+                default: title = "Bantuan"; content = `<p>Gunakan tombol ini untuk mendapatkan panduan singkat sesuai halaman yang sedang Anda buka.</p>`;
+            }
+            if (titleEl) titleEl.textContent = title;
+            if (bodyEl) bodyEl.innerHTML = content;
+        }
+
+        const showUserView = (viewName) => {
+            if (!userViewsContainer || !adminViewsContainer) return;
+            adminViewsContainer.classList.add('hidden');
+            userViewsContainer.classList.remove('hidden');
+            Object.keys(views).forEach(key => { if (views[key] && !key.startsWith('admin')) views[key].classList.add('hidden'); });
+            const viewToShow = views[viewName] || views.library;
+            if (viewToShow) { viewToShow.classList.remove('hidden'); updateHelpContent(viewName || 'library'); }
+            window.scrollTo(0, 0);
         };
 
+        const showAdminView = (viewName) => {
+            if (!userViewsContainer || !adminViewsContainer) return;
+            userViewsContainer.classList.add('hidden');
+            adminViewsContainer.classList.remove('hidden');
+            Object.keys(views).forEach(key => { if (views[key] && key.startsWith('admin')) views[key].classList.add('hidden'); });
+            const viewToShow = views[viewName] || views.adminMenu;
+            if (viewToShow) { viewToShow.classList.remove('hidden'); updateHelpContent(viewName || 'adminMenu'); }
+            window.scrollTo(0, 0);
+        };
+
+        const showAuthView = (viewName) => {
+            Object.keys(views).forEach(key => { if (views[key]) views[key].classList.add('hidden'); });
+            if(appContainer) appContainer.classList.add('hidden');
+            if(authContainer) authContainer.classList.remove('hidden');
+            if (views[viewName]) views[viewName].classList.remove('hidden');
+        };
+
+        onAuthStateChanged(auth, async user => {
+            showLoading();
+            if (submissionUnsubscribe) submissionUnsubscribe(); 
+
+            if (user) {
+                currentUser = user;
+                authContainer.classList.add('hidden');
+                appContainer.classList.remove('hidden');
+                const adminPanelBtn = document.getElementById('admin-panel-btn');
+                if (user.email.toLowerCase() === 'admin@ac.id') {
+                    adminPanelBtn.classList.remove('hidden');
+                    updateAdminNotifications();
+                    preloadAdminAssets();
+                } else {
+                    adminPanelBtn.classList.add('hidden');
+                }
+                listenToSubmissionStatus();
+                await loadLibrary(); 
+                showUserView('library');
+            } else {
+                currentUser = null;
+                showAuthView('login');
+            }
+            hideLoading();
+        });
+
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault(); 
+            showLoading();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('login-error');
+            errorEl.classList.add('hidden');
+            try { 
+                await signInWithEmailAndPassword(auth, email, password); 
+            } 
+            catch (error) { 
+                errorEl.textContent = 'Email atau password salah.'; 
+                errorEl.classList.remove('hidden'); 
+                hideLoading();
+            }
+        });
+
+        document.getElementById('register-form').addEventListener('submit', async e => {
+            e.preventDefault(); showLoading();
+            const name = document.getElementById('register-name').value;
+            const age = document.getElementById('register-age').value;
+            const whatsapp = document.getElementById('register-whatsapp').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const errorEl = document.getElementById('register-error');
+            errorEl.classList.add('hidden');
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                await setDoc(doc(db, "users", user.uid), { name, age, whatsapp, email });
+                alert("Akun berhasil dibuat! Silakan masuk.");
+                showAuthView('login');
+            } catch (error) {
+                errorEl.textContent = error.message;
+                errorEl.classList.remove('hidden');
+            } finally { hideLoading(); }
+        });
+        
+        function listenToSubmissionStatus() {
+            if (!currentUser) return;
+            const q = query(collection(db, "bookSubmissions"), where("userId", "==", currentUser.uid));
+            submissionUnsubscribe = onSnapshot(q, (snapshot) => {
+                if (!snapshot.empty) {
+                    const submissionData = snapshot.docs[0].data();
+                    submissionData.id = snapshot.docs[0].id;
+                    userSubmission = submissionData;
+                } else {
+                    userSubmission = null;
+                }
+                updateStatusView();
+            });
+        }
+        
+        function updateStatusView() {
+            const statusContent = document.getElementById('status-content');
+            if (!statusContent) return;
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            if (!userSubmission) {
+                statusContent.innerHTML = `<p class="text-gray-500 mb-6">Anda belum mengajukan naskah apapun. Silakan mulai melalui tombol "Terbitkan Buku".</p>
+                                           <button id="back-from-status-btn-empty" class="mt-8 font-bold py-2 px-6 rounded-lg btn-gradient">Kembali ke Perpustakaan</button>`;
+                document.getElementById('back-from-status-btn-empty').onclick = () => showUserView('library');
+                return;
+            }
+
+            const { status, title, rejectionReason, rejectionDate, timeline, publishedDate } = userSubmission;
+            let cardClass = '', labelText = '', iconHtml = '', additionalHtml = '';
+
+            switch(status) {
+                case 'diajukan': cardClass = 'bg-red-100 text-red-800'; labelText = 'Status: Diajukan'; iconHtml = '<i class="fas fa-paper-plane text-4xl mb-4"></i>'; additionalHtml = `<p class="text-sm text-gray-500">Naskah Anda sedang menunggu antrian untuk direview.</p>`; break;
+                case 'review': cardClass = 'bg-yellow-100 text-yellow-800'; labelText = 'Status: Dalam Peninjauan'; iconHtml = '<i class="fas fa-search text-4xl mb-4"></i>'; additionalHtml = `<p class="text-sm text-gray-500">Tim kami sedang mengevaluasi naskah Anda.</p>`; break;
+                case 'penerbitan': 
+                    cardClass = 'bg-green-100 text-green-800'; 
+                    labelText = 'Status: Proses Penerbitan'; 
+                    iconHtml = '<i class="fas fa-check-circle text-4xl mb-4"></i>'; 
+                    const timelineSteps = [
+                        { key: 'editing', label: 'Editing Naskah' },
+                        { key: 'layout', label: 'Layout & Tata Letak' },
+                        { key: 'coverDesign', label: 'Desain Sampul' },
+                        { key: 'finalReview', label: 'Review Final' },
+                    ];
+                    let timelineHtml = '<ul class="text-left space-y-2 mt-4">';
+                    timelineSteps.forEach(step => {
+                        const stepStatus = timeline && timeline[step.key] ? timeline[step.key] : 'Belum Dimulai';
+                        let icon = '<i class="far fa-circle text-gray-400 mr-2"></i>';
+                        if (stepStatus === 'Dikerjakan') icon = '<i class="fas fa-spinner fa-spin text-yellow-500 mr-2"></i>';
+                        if (stepStatus === 'Selesai') icon = '<i class="fas fa-check-circle text-green-500 mr-2"></i>';
+                        timelineHtml += `<li>${icon} ${step.label}: <span class="font-semibold">${stepStatus}</span></li>`;
+                    });
+                    timelineHtml += '</ul>';
+                    additionalHtml = `<div class="text-left bg-white p-4 rounded-lg my-4"><p class="font-bold mb-2">Linimasa Penerbitan:</p>${timelineHtml}</div>`;
+                    break;
+                case 'terbit':
+                    cardClass = 'bg-blue-100 text-blue-800';
+                    labelText = 'Status: Telah Terbit';
+                    iconHtml = '<i class="fas fa-book-open-reader text-4xl mb-4"></i>';
+                    additionalHtml = `<p class="text-sm text-gray-500 mb-4">Selamat! Bukumu sudah terbit. Karyamu kini menjadi bagian dari koleksi kami.</p>
+                                      <button id="resubmit-btn" class="btn-gradient font-bold py-2 px-4 rounded-lg" disabled>Ajukan Karya Baru</button>
+                                      <p id="countdown-timer" class="text-sm mt-2"></p>`;
+                    break;
+                case 'ditolak': cardClass = 'bg-gray-200 text-gray-800'; labelText = 'Status: Ditolak'; iconHtml = '<i class="fas fa-times-circle text-4xl mb-4 text-red-500"></i>'; additionalHtml = `<div class="text-left bg-white p-4 rounded-lg my-4"><p class="font-bold">Alasan Penolakan:</p><p class="italic">"${rejectionReason || 'Tidak ada alasan spesifik.'}"</p></div><button id="resubmit-btn" class="btn-gradient font-bold py-2 px-4 rounded-lg" disabled>Ajukan Ulang Naskah</button><p id="countdown-timer" class="text-sm mt-2"></p>`; break;
+            }
+            
+            statusContent.innerHTML = `<p class="text-gray-500 mb-6">Anda hanya bisa mengajukan satu naskah dalam satu waktu.</p><div class="p-6 rounded-lg mb-6 transition-colors ${cardClass}">${iconHtml}<p class="text-sm font-bold uppercase tracking-wider mb-2">${labelText}</p><h3 class="text-2xl font-bold font-serif">${title}</h3></div>${additionalHtml}<button id="back-from-status-btn" class="mt-8 font-bold py-2 px-6 rounded-lg btn-gradient">Kembali ke Perpustakaan</button>`;
+            
+            document.getElementById('back-from-status-btn').onclick = () => showUserView('library');
+            
+            if (status === 'ditolak' || status === 'terbit') {
+                const resubmitBtn = document.getElementById('resubmit-btn');
+                const timerEl = document.getElementById('countdown-timer');
+                const baseDate = status === 'ditolak' ? rejectionDate : publishedDate;
+                if (!baseDate) {
+                  timerEl.textContent = "Tanggal tidak valid untuk memulai hitung mundur.";
+                  return;
+                }
+                const unlockDate = new Date(baseDate);
+                unlockDate.setDate(unlockDate.getDate() + (status === 'ditolak' ? 7 : 14));
+
+                countdownInterval = setInterval(() => {
+                    const now = new Date();
+                    const distance = unlockDate - now;
+                    if (distance < 0) {
+                        clearInterval(countdownInterval);
+                        resubmitBtn.disabled = false;
+                        timerEl.textContent = "Anda sudah bisa mengajukan karya baru.";
+                        resubmitBtn.onclick = async () => {
+                            if (confirm("Ini akan menghapus catatan pengajuan lama dan mengizinkan Anda membuat pengajuan baru. Lanjutkan?")) {
+                                showLoading();
+                                await deleteDoc(doc(db, "bookSubmissions", userSubmission.id));
+                                hideLoading();
+                            }
+                        };
+                    } else {
+                        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+                        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        timerEl.textContent = `Bisa mengajukan lagi dalam: ${days}h ${hours}j ${minutes}m`;
+                    }
+                }, 1000);
+            }
+        }
+        
         async function loadLibrary() {
             showLoading();
-            const gridEl = document.getElementById('library-grid');
-            gridEl.innerHTML = '';
             try {
                 const q = query(collection(db, "books"), where("published", "==", true));
                 const snapshot = await getDocs(q);
-                
-                const books = [];
-                snapshot.forEach(doc => books.push(doc.data()));
-                books.sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+                allBooks = [];
+                snapshot.forEach(doc => allBooks.push({ id: doc.id, ...doc.data() }));
+                displayBooks();
+            } catch (error) { console.error("Error loading library:", error); } 
+            finally { hideLoading(); }
+        }
 
-                if (books.length === 0) {
-                    gridEl.innerHTML = "<p>Belum ada buku yang diterbitkan.</p>";
-                } else {
-                    books.forEach(book => {
-                        const card = document.createElement('div');
-                        card.className = 'book-card';
-                        card.innerHTML = `<img src="${book.coverUrl}" alt="Cover"><h4>${book.title}</h4><p>${book.author}</p>`;
-                        card.onclick = () => showBookDetail(book);
-                        gridEl.appendChild(card);
-                    });
+        const createBookCard = (book) => {
+            const priceTag = book.isPaid ? `<div class="absolute top-2 right-2 bg-green-500 text-white text-xs font-bold py-1 px-2 rounded">Rp ${book.price.toLocaleString('id-ID')}</div>` : '';
+            const readerInfo = `<p class="text-slate-500 text-sm"><i class="fas fa-eye mr-1"></i>${book.readerCount || 0}</p>`;
+            return `<div class="book-card group cursor-pointer flex-shrink-0 w-36 md:w-48" data-book-id="${book.id}">
+                        <div class="relative overflow-hidden rounded-lg shadow-lg transform transition-transform duration-300 group-hover:scale-105">
+                            <img src="${book.coverUrl}" alt="Cover of ${book.title}" class="w-full h-52 md:h-64 object-cover bg-gray-200">
+                        </div>
+                        <h4 class="text-gray-800 font-bold text-md mt-2 truncate">${book.title}</h4>
+                        <div class="flex justify-between items-center"><p class="text-gray-500 text-sm truncate">${book.author}</p>${readerInfo}</div>
+                    </div>`;
+        };
+
+        function displayBooks(searchTerm = '') {
+            const mostPopularCarousel = document.getElementById('most-popular-books-carousel');
+            const latestCarousel = document.getElementById('latest-books-carousel');
+            const paidCarousel = document.getElementById('paid-books-carousel');
+            if (!mostPopularCarousel || !latestCarousel || !paidCarousel) return;
+            const emptyStateHTML = `<p class="text-gray-500 italic pl-2">Belum ada buku di kategori ini.</p>`;
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            const filteredBooks = searchTerm ? allBooks.filter(b => b.title.toLowerCase().includes(lowerSearchTerm) || b.author.toLowerCase().includes(lowerSearchTerm)) : allBooks;
+            
+            const mostPopularBooks = [...filteredBooks].sort((a,b) => (b.readerCount || 0) - (a.readerCount || 0)).slice(0, 10);
+            mostPopularCarousel.innerHTML = mostPopularBooks.length > 0 ? mostPopularBooks.map(createBookCard).join('') : emptyStateHTML;
+            
+            const latestBooks = [...filteredBooks].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+            latestCarousel.innerHTML = latestBooks.length > 0 ? latestBooks.map(createBookCard).join('') : emptyStateHTML;
+            
+            const paidBooks = filteredBooks.filter(b => b.isPaid).sort((a,b) => b.price - a.price);
+            paidCarousel.innerHTML = paidBooks.length > 0 ? paidBooks.map(createBookCard).join('') : emptyStateHTML;
+            
+            document.querySelectorAll('.book-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const bookId = card.dataset.bookId;
+                    const selectedBook = allBooks.find(b => b.id === bookId);
+                    if(selectedBook) showBookDetail(selectedBook);
+                });
+            });
+        }
+        
+        function showBookDetail(book) {
+            document.getElementById('detail-cover-img').src = book.coverUrl;
+            document.getElementById('detail-title').textContent = book.title;
+            document.getElementById('detail-author').textContent = book.author;
+            document.getElementById('detail-readers').textContent = book.readerCount || 0;
+            document.getElementById('detail-category').textContent = book.category;
+            document.getElementById('detail-synopsis').textContent = book.synopsis;
+            const actionsContainer = document.getElementById('detail-actions');
+            if (book.isPaid) {
+                actionsContainer.innerHTML = `<button id="purchase-book-btn" class="font-bold py-3 px-6 rounded-lg btn-gradient w-full"><i class="fas fa-shopping-cart mr-2"></i> Ajukan Pembelian (Rp ${book.price.toLocaleString('id-ID')})</button>`;
+                document.getElementById('purchase-book-btn').onclick = () => requestPurchase(book);
+            } else {
+                actionsContainer.innerHTML = `<button id="read-book-btn" class="font-bold py-3 px-6 rounded-lg btn-gradient w-full"><i class="fas fa-book-open mr-2"></i> Baca Sekarang</button>`;
+                document.getElementById('read-book-btn').onclick = () => readBook(book);
+            }
+            showUserView('detail');
+        }
+
+        async function readBook(book) {
+            showLoading();
+            try {
+                const bookRef = doc(db, "books", book.id);
+                await updateDoc(bookRef, { readerCount: increment(1) });
+                window.open(book.driveUrl, '_blank');
+                const bookInArray = allBooks.find(b => b.id === book.id);
+                if(bookInArray) {
+                    bookInArray.readerCount = (bookInArray.readerCount || 0) + 1;
+                    document.getElementById('detail-readers').textContent = bookInArray.readerCount;
                 }
+                displayBooks();
+            } catch (e) { alert("Gagal membuka buku."); } 
+            finally { hideLoading(); }
+        }
+
+        async function requestPurchase(book) {
+            if(!currentUser) { alert("Anda harus login untuk membeli buku."); return; }
+            if(confirm(`Anda akan mengajukan pembelian untuk buku "${book.title}" seharga Rp ${book.price.toLocaleString('id-ID')}. Lanjutkan?`)){
+                showLoading();
+                try {
+                    await addDoc(collection(db, "purchaseRequests"), { userId: currentUser.uid, userEmail: currentUser.email, bookId: book.id, bookTitle: book.title, price: book.price, requestDate: new Date().toISOString(), status: 'pending' });
+                    alert("Permintaan pembelian Anda telah diajukan. Mohon tunggu persetujuan dari admin.");
+                    updateAdminNotifications();
+                } catch (e) { alert("Gagal mengajukan pembelian."); } 
+                finally { hideLoading(); }
+            }
+        }
+        
+        document.getElementById('publish-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) { alert("Anda harus masuk untuk mengajukan naskah."); return; }
+            showLoading();
+            const q = query(collection(db, "users"), where("email", "==", currentUser.email));
+            const userSnap = await getDocs(q);
+            let userData = { name: 'Penulis Anonim' };
+            if (!userSnap.empty) {
+                userData = userSnap.docs[0].data();
+            }
+
+            const submissionData = { 
+                userId: currentUser.uid, 
+                title: document.getElementById('user-book-title').value, 
+                author: userData.name,
+                driveUrl: document.getElementById('user-drive-link').value, 
+                package: document.getElementById('selected-package').value,
+                submissionDate: new Date().toISOString(), 
+                status: 'diajukan' 
+            };
+            try {
+                await addDoc(collection(db, "bookSubmissions"), submissionData);
+                alert('Naskah berhasil diajukan!');
+                showUserView('publishStatus');
+                updateAdminNotifications();
+            } catch (error) { console.error("Submission Error:", error); alert("Gagal mengajukan naskah."); } 
+            finally { hideLoading(); }
+        });
+        
+        async function updateAdminNotifications() { 
+            const subQuery = query(collection(db, "bookSubmissions"), where("status", "==", "diajukan"));
+            const subSnapshot = await getDocs(subQuery);
+            const subBadge = document.getElementById('submissions-badge');
+            if (subSnapshot.size > 0) { subBadge.textContent = subSnapshot.size; subBadge.classList.remove('hidden'); } 
+            else { subBadge.classList.add('hidden'); }
+            
+            const purQuery = query(collection(db, "purchaseRequests"), where("status", "==", "pending"));
+            const purSnapshot = await getDocs(purQuery);
+            const purBadge = document.getElementById('purchases-badge');
+            if (purSnapshot.size > 0) { purBadge.textContent = purSnapshot.size; purBadge.classList.remove('hidden'); } 
+            else { purBadge.classList.add('hidden'); }
+        }
+
+        async function loadSubmissions() {
+            showLoading();
+            const q = query(collection(db, "bookSubmissions"), orderBy("submissionDate", "desc"));
+            try {
+                const snapshot = await getDocs(q);
+                const listEl = document.getElementById('submission-list');
+                listEl.innerHTML = '';
+                
+                let submissions = [];
+                snapshot.forEach(doc => {
+                    if (doc.data().status !== 'terbit') {
+                        submissions.push({ id: doc.id, ...doc.data() });
+                    }
+                });
+
+                if (submissions.length === 0) { 
+                    listEl.innerHTML = '<p class="text-center text-gray-500">Tidak ada pengajuan naskah aktif.</p>'; 
+                    return; 
+                }
+
+                const statusOrder = { 'diajukan': 1, 'review': 2, 'penerbitan': 3, 'ditolak': 4 };
+                submissions.sort((a, b) => (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99));
+
+                submissions.forEach(sub => {
+                    const item = document.createElement('li');
+                    item.className = 'submission-item';
+                    let statusColor = 'text-gray-500';
+                    if(sub.status === 'diajukan') statusColor = 'text-red-500';
+                    if(sub.status === 'review') statusColor = 'text-yellow-500';
+                    if(sub.status === 'penerbitan') statusColor = 'text-green-500';
+                    if(sub.status === 'ditolak') statusColor = 'text-gray-700';
+
+                    item.innerHTML = `<div class="submission-item-info"><h4>${sub.title}</h4><p>oleh ${sub.author} | Paket: ${sub.package || 'Tidak ada'}</p><p class="${statusColor} font-semibold">Status: ${sub.status}</p></div><div class="submission-item-actions"><button class="btn btn-gradient review-btn" style="width:auto; padding: 8px 12px;">Tinjau</button></div>`;
+                    item.querySelector('.review-btn').onclick = () => showSubmissionDetail(sub);
+                    listEl.appendChild(item);
+                });
             } catch (error) {
-                console.error("Gagal memuat perpustakaan: ", error);
-                gridEl.innerHTML = "<p>Gagal memuat data perpustakaan. Coba lagi nanti.</p>";
+                console.error("Error loading submissions:", error);
             } finally {
                 hideLoading();
             }
         }
 
-        function showBookDetail(book) {
-            document.getElementById('detail-cover-img').src = book.coverUrl;
-            document.getElementById('detail-title').textContent = book.title;
-            document.getElementById('detail-author').textContent = book.author;
-            document.getElementById('detail-category').textContent = book.category;
-            document.getElementById('detail-date').textContent = new Date(book.publishDate).toLocaleDateString('id-ID', { dateStyle: 'long'});
-            document.getElementById('detail-synopsis').textContent = book.synopsis;
-            document.getElementById('read-book-btn').dataset.url = book.driveUrl;
-            showView('detail');
+
+        async function showSubmissionDetail(sub) {
+            if (sub.status === 'diajukan') {
+                await updateDoc(doc(db, "bookSubmissions", sub.id), { status: 'review' });
+                loadSubmissions();
+            }
+
+            const contentEl = document.getElementById('submission-detail-content');
+            contentEl.innerHTML = `<p><strong>Judul:</strong> ${sub.title}</p><p><strong>Penulis:</strong> ${sub.author}</p><p><strong>Paket:</strong> ${sub.package || 'Tidak Ada'}</p><p><strong>Link Naskah:</strong> <a href="${sub.driveUrl}" target="_blank" class="text-blue-600 hover:underline">Buka Google Drive</a></p><p><strong>Tanggal Diajukan:</strong> ${new Date(sub.submissionDate).toLocaleString('id-ID')}</p>`;
+            
+            const statusChangerEl = document.getElementById('submission-status-changer');
+            
+            if(sub.status === 'penerbitan' || sub.status === 'terbit') {
+                const timeline = sub.timeline || {};
+                const steps = ['editing', 'layout', 'coverDesign', 'finalReview'];
+                const labels = { editing: 'Editing Naskah', layout: 'Layout & Tata Letak', coverDesign: 'Desain Sampul', finalReview: 'Review Final'};
+                let timelineForm = '<p class="font-bold mt-4 text-left">Update Linimasa:</p>';
+                steps.forEach(step => {
+                    timelineForm += `
+                        <div class="flex items-center justify-between mt-2">
+                            <label for="timeline-${step}">${labels[step]}</label>
+                            <select id="timeline-${step}" data-step="${step}" class="border rounded p-1">
+                                <option value="Belum Dimulai" ${timeline[step] === 'Belum Dimulai' ? 'selected' : ''}>Belum Dimulai</option>
+                                <option value="Dikerjakan" ${timeline[step] === 'Dikerjakan' ? 'selected' : ''}>Dikerjakan</option>
+                                <option value="Selesai" ${timeline[step] === 'Selesai' ? 'selected' : ''}>Selesai</option>
+                            </select>
+                        </div>
+                    `;
+                });
+                timelineForm += '<button id="update-timeline-btn" class="btn btn-gradient mt-4 text-sm">Update Linimasa</button>';
+                statusChangerEl.innerHTML = timelineForm;
+                
+                const updateBtn = document.getElementById('update-timeline-btn');
+
+                const checkAllStepsComplete = () => {
+                    const allComplete = steps.every(step => (document.getElementById(`timeline-${step}`).value === 'Selesai'));
+                    if (allComplete) {
+                        updateBtn.textContent = 'Lanjutkan ke Formulir Buku';
+                        updateBtn.classList.remove('btn-gradient');
+                        updateBtn.classList.add('bg-green-500');
+                    } else {
+                        updateBtn.textContent = 'Update Linimasa';
+                        updateBtn.classList.add('btn-gradient');
+                        updateBtn.classList.remove('bg-green-500');
+                    }
+                    return allComplete;
+                };
+
+                steps.forEach(step => document.getElementById(`timeline-${step}`).onchange = checkAllStepsComplete);
+                
+                updateBtn.onclick = async () => {
+                    const isAllComplete = checkAllStepsComplete();
+                    const newTimeline = {};
+                    steps.forEach(step => newTimeline[step] = document.getElementById(`timeline-${step}`).value);
+                    
+                    showLoading();
+                    try {
+                        await updateDoc(doc(db, "bookSubmissions", sub.id), { timeline: newTimeline });
+                        if (isAllComplete) {
+                            populateFormFromSubmission(sub);
+                            showAdminView('adminForm');
+                        } else {
+                            alert('Linimasa berhasil diperbarui!');
+                        }
+                    } catch (err) { alert('Gagal memperbarui linimasa.'); }
+                    finally { hideLoading(); }
+                };
+                checkAllStepsComplete();
+
+            } else {
+                 statusChangerEl.innerHTML = `<p class="font-bold mt-4 text-left">Ubah Status:</p><div class="flex gap-2 mt-2"><button class="btn btn-gradient text-xs" data-status="penerbitan">Setujui</button><button class="btn btn-danger text-xs" data-status="ditolak">Tolak</button></div>`;
+                statusChangerEl.querySelectorAll('button').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        const newStatus = e.target.dataset.status;
+                        let updateData = { status: newStatus };
+
+                        if (newStatus === 'ditolak') {
+                            const reason = prompt("Masukkan alasan penolakan:");
+                            if (reason === null) return;
+                            updateData.rejectionReason = reason || "Tidak ada alasan spesifik.";
+                            updateData.rejectionDate = new Date().toISOString();
+                        } else if (newStatus === 'penerbitan') {
+                            updateData.timeline = { editing: 'Belum Dimulai', layout: 'Belum Dimulai', coverDesign: 'Belum Dimulai', finalReview: 'Belum Dimulai' };
+                        }
+                        
+                        showLoading();
+                        try {
+                            await updateDoc(doc(db, "bookSubmissions", sub.id), updateData);
+                            alert(`Status berhasil diubah menjadi: ${newStatus}`);
+                            showAdminView('adminSubmissions');
+                            loadSubmissions();
+                        } catch (err) { alert('Gagal mengubah status.'); } 
+                        finally { hideLoading(); }
+                    };
+                });
+            }
+            showAdminView('adminSubmissionDetail');
         }
 
-        document.getElementById('back-to-library-btn').onclick = () => showView('library');
+        function populateFormFromSubmission(sub) {
+            isAdminEditMode = false;
+            currentAdminBookData = { submissionId: sub.id, userId: sub.userId };
+            document.getElementById('admin-book-form').reset();
+            
+            document.getElementById('admin-book-title').value = sub.title;
+            document.getElementById('admin-author-name').value = sub.author;
+            document.getElementById('admin-drive-url').value = sub.driveUrl;
+        }
         
-        document.getElementById('read-book-btn').addEventListener('click', (e) => {
-            const url = e.currentTarget.dataset.url;
-            if (url) {
-                showView('reader');
-                setTimeout(() => {
-                    window.open(url, '_blank');
-                    showView('detail');
-                }, 2000);
+        async function getNextBookId() {
+            const counterRef = doc(db, "counters", "books");
+            const newId = await runTransaction(db, async (transaction) => {
+                const counterDoc = await transaction.get(counterRef);
+                const lastId = counterDoc.exists() ? counterDoc.data().lastId : 0;
+                const nextId = lastId + 1;
+                transaction.set(counterRef, { lastId: nextId }, { merge: true });
+                return nextId;
+            });
+            return `CA-${String(newId).padStart(5, '0')}`;
+        }
+        
+        document.getElementById('admin-book-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            showLoading();
+
+            const isNewBook = !isAdminEditMode;
+            let bookId;
+            if (isNewBook) {
+                bookId = await getNextBookId();
+            } else {
+                bookId = currentAdminBookData.bookId;
             }
+            
+            const submissionId = isNewBook && currentAdminBookData ? currentAdminBookData.submissionId : (isAdminEditMode ? currentAdminBookData.submissionId : null);
+            const userId = isNewBook && currentAdminBookData ? currentAdminBookData.userId : (isAdminEditMode ? currentAdminBookData.userId : null);
+
+            currentAdminBookData = {
+                id: document.getElementById('admin-book-firestore-id').value,
+                bookId: bookId,
+                title: document.getElementById('admin-book-title').value,
+                author: document.getElementById('admin-author-name').value,
+                synopsis: document.getElementById('admin-synopsis').value,
+                coverUrl: document.getElementById('admin-cover-url').value,
+                driveUrl: document.getElementById('admin-drive-url').value,
+                category: document.getElementById('admin-category').value,
+                publishDate: document.getElementById('admin-publish-date').value,
+                isPaid: document.getElementById('admin-is-paid').checked,
+                price: document.getElementById('admin-is-paid').checked ? Number(document.getElementById('admin-price').value) : 0,
+                readerCount: isNewBook ? 0 : (currentAdminBookData.readerCount || 0),
+                createdAt: isNewBook ? new Date().toISOString() : currentAdminBookData.createdAt,
+                published: false,
+                userId: userId,
+                submissionId: submissionId
+            };
+            
+            const previewContainer = document.getElementById('form-preview-container');
+            const today = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+
+            previewContainer.innerHTML = `
+                <div style="border: 1px solid #000; padding: 1.5cm; background: white; height: 100%; display: flex; flex-direction: column;">
+                    <header style="text-align: center; border-bottom: 3px double #000; padding-bottom: 5px; margin-bottom: 20px;">
+                        <img src="https://i.imgur.com/HDC6SWw.png" alt="Logo" style="width: 60px; height: 60px; margin: 0 auto 5px;">
+                        <h2 style="font-size: 20px; font-weight: bold; margin: 0;">CENDEKIA AKSARA</h2>
+                        <p style="font-size: 11px; margin: 0;">Penerbitan Digital & Komunitas Menulis</p>
+                    </header>
+                    <main style="flex-grow: 1;">
+                        <h3 style="font-size: 16px; font-weight: bold; text-align: center; text-decoration: underline; margin-bottom: 25px;">BUKTI PENDAFTARAN KARYA</h3>
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+                            <tbody>
+                                <tr><td style="padding: 5px; width: 150px;">ID Karya</td><td style="padding: 5px;">: ${currentAdminBookData.bookId || 'N/A'}</td></tr>
+                                <tr><td style="padding: 5px;">Judul Karya</td><td style="padding: 5px;">: ${currentAdminBookData.title}</td></tr>
+                                <tr><td style="padding: 5px;">Nama Penulis</td><td style="padding: 5px;">: ${currentAdminBookData.author}</td></tr>
+                                <tr><td style="padding: 5px;">Kategori</td><td style="padding: 5px;">: ${currentAdminBookData.category}</td></tr>
+                                <tr><td style="padding: 5px;">Tanggal Pendaftaran</td><td style="padding: 5px;">: ${today}</td></tr>
+                                <tr><td style="padding: 5px;">Rencana Terbit</td><td style="padding: 5px;">: ${new Date(currentAdminBookData.publishDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</td></tr>
+                                <tr><td style="padding: 5px; vertical-align: top;">Sinopsis</td><td style="padding: 5px; vertical-align: top;">: ${currentAdminBookData.synopsis}</td></tr>
+                            </tbody>
+                        </table>
+                        <p style="font-size: 11pt; margin-top: 30px;">Dokumen ini adalah bukti bahwa karya dengan detail di atas telah terdaftar dalam sistem Cendekia Aksara dan akan masuk ke tahap selanjutnya sesuai alur penerbitan. Dokumen ini sah dan dikeluarkan secara resmi oleh Cendekia Aksara.</p>
+                    </main>
+                    <footer style="margin-top: 40px; text-align: right;">
+                         <div style="display: inline-block; text-align: center; position: relative; width: 200px;">
+                            <p>Temanggung, ${today}</p>
+                            <p>Mengetahui,</p>
+                            <div style="position: relative; height: 80px; margin-top: 10px;">
+                                 <img src="${stampImage ? stampImage.src : ''}" style="position: absolute; top: -10px; left: 10px; width: 100px; opacity: 0.7; transform: rotate(-15deg);">
+                                 <img src="${signatureImage ? signatureImage.src : ''}" style="position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 120px;">
+                            </div>
+                            <p style="font-weight: bold; text-decoration: underline; margin-top: 0;">Kepala Cendekia Aksara</p>
+                        </div>
+                    </footer>
+                </div>
+            `;
+            
+            showAdminView('adminPreview');
+            hideLoading();
         });
 
-        // Muat perpustakaan saat halaman pertama kali dibuka
-        loadLibrary();
+        document.getElementById('download-form-btn').addEventListener('click', () => {
+             const { jsPDF } = window.jspdf;
+             const content = document.getElementById('form-preview-container');
+             html2canvas(content, { scale: 3, useCORS: true }).then(canvas => {
+                 const imgData = canvas.toDataURL('image/png');
+                 const pdf = new jsPDF('p', 'mm', 'a4');
+                 const pdfWidth = pdf.internal.pageSize.getWidth();
+                 const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+                 pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+                 pdf.save(`Formulir_${currentAdminBookData.bookId}.pdf`);
+             });
+        });
+
+        document.getElementById('data-confirmation').addEventListener('change', (e) => {
+            document.getElementById('publish-btn').disabled = !e.target.checked;
+        });
+
+        document.getElementById('publish-btn').addEventListener('click', async () => {
+            if(!currentAdminBookData) return;
+            showLoading();
+            currentAdminBookData.published = true;
+            try {
+                if(isAdminEditMode){
+                    const bookRef = doc(db, "books", currentAdminBookData.id);
+                    await updateDoc(bookRef, currentAdminBookData);
+                    alert("Buku berhasil diperbarui!");
+                } else {
+                    await addDoc(collection(db, "books"), currentAdminBookData);
+                    if (currentAdminBookData.submissionId) {
+                        await updateDoc(doc(db, "bookSubmissions", currentAdminBookData.submissionId), { status: 'terbit', publishedDate: new Date().toISOString() });
+                    }
+                    alert("Buku berhasil dipublikasikan!");
+                }
+                document.getElementById('admin-book-form').reset();
+                isAdminEditMode = false;
+                currentAdminBookData = null;
+                document.getElementById('data-confirmation').checked = false;
+                document.getElementById('publish-btn').disabled = true;
+                await loadLibrary();
+                await loadAdminArchive();
+                showAdminView('adminArchive');
+            } catch (error) {
+                alert("Gagal mempublikasikan buku: " + error);
+            } finally {
+                hideLoading();
+            }
+        });
+        
+        async function loadAdminArchive(searchTerm = '') {
+            showLoading();
+            const listEl = document.getElementById('archive-list');
+            listEl.innerHTML = '';
+            const q = query(collection(db, "books"), where("published", "==", true));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                listEl.innerHTML = '<p class="text-center text-gray-500">Belum ada buku yang diterbitkan.</p>';
+                hideLoading();
+                return;
+            }
+            
+            let archiveBooks = [];
+            snapshot.forEach(docSnap => archiveBooks.push({ id: docSnap.id, ...docSnap.data() }));
+
+            const lowerSearchTerm = searchTerm.toLowerCase();
+            const filteredBooks = searchTerm ? archiveBooks.filter(b => b.title.toLowerCase().includes(lowerSearchTerm) || b.author.toLowerCase().includes(lowerSearchTerm)) : archiveBooks;
+            
+            filteredBooks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            filteredBooks.forEach(book => {
+                const item = document.createElement('li');
+                item.className = 'archive-item';
+                item.innerHTML = `<img src="${book.coverUrl}" alt="Cover" class="w-12 h-16 object-cover rounded"><div class="archive-item-info"><h4>${book.title}</h4><p>${book.author}</p></div><div class="flex gap-2"><button class="btn btn-secondary edit-btn" style="width:auto; padding: 8px;"><i class="fas fa-edit"></i></button><button class="btn btn-danger delete-btn" style="width:auto; padding: 8px;"><i class="fas fa-trash"></i></button><button class="btn btn-gradient qr-btn" style="width:auto; padding: 8px;"><i class="fas fa-qrcode"></i></button></div>`;
+                item.querySelector('.edit-btn').onclick = () => editBook(book);
+                item.querySelector('.delete-btn').onclick = () => confirmDelete(book);
+                item.querySelector('.qr-btn').onclick = () => showQRCodeModal();
+                listEl.appendChild(item);
+            });
+            hideLoading();
+        }
+
+        function editBook(book) {
+            isAdminEditMode = true;
+            currentAdminBookData = book;
+            document.getElementById('admin-book-firestore-id').value = book.id;
+            document.getElementById('admin-book-title').value = book.title;
+            document.getElementById('admin-author-name').value = book.author;
+            document.getElementById('admin-synopsis').value = book.synopsis;
+            document.getElementById('admin-cover-url').value = book.coverUrl;
+            document.getElementById('admin-cover-preview').src = book.coverUrl;
+            document.getElementById('admin-drive-url').value = book.driveUrl;
+            document.getElementById('admin-category').value = book.category;
+            document.getElementById('admin-publish-date').value = book.publishDate;
+            document.getElementById('admin-is-paid').checked = book.isPaid;
+            document.getElementById('admin-price-container').classList.toggle('hidden', !book.isPaid);
+            if(book.isPaid) document.getElementById('admin-price').value = book.price;
+            showAdminView('adminForm');
+        }
+
+        function confirmDelete(book) {
+            const modal = document.getElementById('delete-modal');
+            modal.classList.remove('hidden');
+            document.getElementById('delete-book-title').textContent = book.title;
+            document.getElementById('cancel-delete-btn').onclick = () => modal.classList.add('hidden');
+            document.getElementById('confirm-delete-btn').onclick = async () => {
+                showLoading();
+                await deleteDoc(doc(db, "books", book.id));
+                modal.classList.add('hidden');
+                await loadAdminArchive();
+                await loadLibrary();
+                hideLoading();
+            };
+        }
+
+        function showQRCodeModal() {
+            const modal = document.getElementById('qrcode-modal');
+            const display = document.getElementById('modal-qrcode-display');
+            display.innerHTML = ''; 
+            
+            const libraryUrl = 'https://bhe-24.github.io/Perpustakaan';
+            
+            const qr = new QRCode(display, {
+                text: libraryUrl, width: 200, height: 200, colorDark : "#000000", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
+            });
+            
+            setTimeout(() => {
+                const qrCanvas = display.querySelector('canvas');
+                if (!qrCanvas) return;
+
+                const logo = new Image();
+                logo.crossOrigin = "Anonymous";
+                logo.src = 'https://i.imgur.com/HDC6SWw.png';
+                logo.onload = () => {
+                    const ctx = qrCanvas.getContext('2d');
+                    const logoSize = 40;
+                    const x = (qrCanvas.width - logoSize) / 2;
+                    const y = (qrCanvas.height - logoSize) / 2;
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(x - 5, y - 5, logoSize + 10, logoSize + 10);
+                    ctx.drawImage(logo, x, y, logoSize, logoSize);
+                    
+                    document.getElementById('download-qrcode-btn').onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = qrCanvas.toDataURL("image/png");
+                        a.download = 'QR_Cendekia_Aksara.png';
+                        a.click();
+                    };
+                };
+            }, 500); // Increased delay to ensure QR render
+            modal.classList.remove('hidden');
+        }
+
+        async function loadUserArchive() {
+            showLoading();
+            const listEl = document.getElementById('user-archive-list');
+            listEl.innerHTML = '';
+            const q = query(collection(db, "books"), where("published", "==", true), where("userId", "==", currentUser.uid));
+            const snapshot = await getDocs(q);
+            if (snapshot.empty) {
+                listEl.innerHTML = '<p class="text-center text-gray-500">Anda belum memiliki karya yang terbit.</p>';
+            } else {
+                snapshot.forEach(doc => {
+                    const book = doc.data();
+                    const item = document.createElement('div');
+                    item.className = 'p-4 border rounded-lg bg-white flex items-center justify-between';
+                    item.innerHTML = `<div><h4 class="font-bold text-lg">${book.title}</h4><p class="text-sm text-gray-600">oleh ${book.author}</p></div><a href="${book.driveUrl}" target="_blank" class="text-blue-600 hover:underline">Lihat Naskah</a>`;
+                    listEl.appendChild(item);
+                });
+            }
+            hideLoading();
+        }
+
+        // Event Listeners
+        document.getElementById('close-qrcode-modal').addEventListener('click', () => document.getElementById('qrcode-modal').classList.add('hidden'));
+        document.getElementById('search-archive').addEventListener('input', (e) => loadAdminArchive(e.target.value));
+        document.getElementById('admin-is-paid').addEventListener('change', (e) => document.getElementById('admin-price-container').classList.toggle('hidden', !e.target.checked));
+        document.getElementById('admin-cover-url').addEventListener('input', (e) => {
+            const preview = document.getElementById('admin-cover-preview');
+            if (e.target.value) { preview.src = e.target.value; } 
+            else { preview.src = 'https://placehold.co/150x225/e0e0e0/777?text=Cover'; }
+        });
+        document.getElementById('show-register-btn').addEventListener('click', () => showAuthView('register'));
+        document.getElementById('show-login-btn').addEventListener('click', () => showAuthView('login'));
+        document.getElementById('user-search-bar').addEventListener('input', (e) => displayBooks(e.target.value));
+        document.getElementById('logout-btn').addEventListener('click', () => signOut(auth));
+        document.getElementById('back-to-library-btn').addEventListener('click', () => showUserView('library'));
+        document.getElementById('publish-flow-btn').addEventListener('click', () => { if (userSubmission) { showUserView('publishStatus'); } else { showUserView('publishTerms'); } });
+        document.getElementById('back-from-terms-btn').addEventListener('click', () => showUserView('library'));
+        document.getElementById('next-to-packages-btn').addEventListener('click', () => showUserView('publishPackages'));
+        document.getElementById('back-from-packages-btn').addEventListener('click', () => showUserView('publishTerms'));
+        document.querySelectorAll('.select-package-btn').forEach(btn => { btn.addEventListener('click', (e) => { document.getElementById('selected-package').value = e.target.dataset.package; showUserView('publishForm'); }); });
+        document.getElementById('back-from-form-btn').addEventListener('click', () => showUserView('publishPackages'));
+        
+        document.getElementById('my-archive-btn').addEventListener('click', () => { loadUserArchive(); showUserView('userArchive'); });
+        document.getElementById('back-to-library-from-archive-btn').addEventListener('click', () => showUserView('library'));
+
+        document.querySelectorAll('.back-to-admin-menu-btn').forEach(btn => btn.addEventListener('click', () => showAdminView('adminMenu')));
+        document.getElementById('admin-goto-submissions-btn').addEventListener('click', () => { loadSubmissions(); showAdminView('adminSubmissions'); });
+        document.getElementById('admin-goto-purchases-btn').addEventListener('click', () => { /* loadPurchases(); */ showAdminView('adminPurchases'); });
+        document.getElementById('admin-goto-form-btn').addEventListener('click', () => { isAdminEditMode = false; currentAdminBookData = null; document.getElementById('admin-book-form').reset(); document.getElementById('admin-price-container').classList.add('hidden'); document.getElementById('admin-cover-preview').src = 'https://placehold.co/150x225/e0e0e0/777?text=Cover'; showAdminView('adminForm'); });
+        document.getElementById('admin-goto-archive-btn').addEventListener('click', () => { loadAdminArchive(); showAdminView('adminArchive'); });
+        document.getElementById('exit-admin-btn').addEventListener('click', () => showUserView('library'));
+        document.getElementById('admin-panel-btn').addEventListener('click', () => { updateAdminNotifications(); showAdminView('adminMenu'); });
+        document.getElementById('back-to-submissions-list-btn').addEventListener('click', () => { loadSubmissions(); showAdminView('adminSubmissions'); });
+
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpModalBtn = document.getElementById('close-help-modal');
+        helpBtn.onclick = () => helpModal.classList.remove('hidden');
+        closeHelpModalBtn.onclick = () => helpModal.classList.add('hidden');
+        helpModal.onclick = (e) => { if (e.target === helpModal) helpModal.classList.add('hidden'); };
     });
     </script>
 </body>
 </html>
+
