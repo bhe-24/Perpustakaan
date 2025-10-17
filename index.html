@@ -10,6 +10,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
         @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css');
 
         :root {
@@ -102,7 +103,7 @@
         }
         .form-group { margin-bottom: 20px; text-align: left; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--secondary-color); }
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--light-gray);
@@ -271,7 +272,7 @@
         /* Admin View */
         .admin-view-grid {
             display: grid;
-            grid-template-columns: 1fr 2fr;
+            grid-template-columns: 1fr 1fr;
             gap: 30px;
             align-items: flex-start;
         }
@@ -303,6 +304,37 @@
         .content-editor:focus {
             outline: none;
             border-color: var(--primary-color);
+        }
+
+        #a5-preview-area {
+            background: var(--gray-color);
+            padding: 20px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--light-gray);
+        }
+
+        .preview-page {
+            background: white;
+            width: 100%;
+            aspect-ratio: 1 / 1.414; /* A5 aspect ratio */
+            margin: 0 auto 20px auto;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            padding: 10% 8%;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+            word-break: break-word;
+        }
+
+        .preview-page-number {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #888;
         }
         
         #cover-preview {
@@ -595,9 +627,23 @@
                             <input type="text" id="book-cover-url" placeholder="https://imgur.com/..." required>
                             <img id="cover-preview" src="" alt="Pratinjau Cover" class="hidden">
                         </div>
+                        <div class="form-group">
+                            <label for="book-font">Gaya Huruf Buku</label>
+                            <select id="book-font">
+                                <option value="Poppins, sans-serif">Poppins</option>
+                                <option value="Times New Roman, serif">Times New Roman</option>
+                                <option value="Pacifico, cursive">Aqua (Script)</option>
+                            </select>
+                        </div>
                          <div class="form-group">
-                            <label for="book-content">Isi Buku (Salin & tempel dari dokumen)</label>
+                            <label for="book-content-editor">Isi Buku (Salin & tempel di sini)</label>
                             <div id="book-content-editor" class="content-editor" contenteditable="true"></div>
+                        </div>
+                        <div class="form-group">
+                            <label>Pratinjau Halaman A5</label>
+                            <div id="a5-preview-area">
+                                <p style="text-align: center; color: var(--gray-color);">Mulai ketik atau tempel konten untuk melihat pratinjau.</p>
+                            </div>
                         </div>
                         <button type="submit" class="btn" style="width: 100%;">Simpan Buku</button>
                         <button type="button" id="cancel-edit-btn" class="btn btn-secondary hidden" style="width: 100%; margin-top: 10px;">Batal Edit</button>
@@ -721,8 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('show-register-link').onclick = () => { document.getElementById('login-form-container').classList.add('hidden'); document.getElementById('register-form-container').classList.remove('hidden'); };
     document.getElementById('show-login-link').onclick = () => { document.getElementById('register-form-container').classList.add('hidden'); document.getElementById('login-form-container').classList.remove('hidden'); };
-    document.getElementById('login-form').onsubmit = e => { e.preventDefault(); showLoading(); const email = document.getElementById('username').value; const password = document.getElementById('password').value; auth.signInWithEmailAndPassword(email, password).catch(err => showModal('Login Gagal', err.message)).finally(hideLoading); };
-    document.getElementById('register-form').onsubmit = e => { e.preventDefault(); showLoading(); const name = document.getElementById('register-name').value; const email = document.getElementById('register-email').value; const password = document.getElementById('register-password').value; const role = email.toLowerCase().endsWith('@ac.id') ? 'admin' : 'siswa'; auth.createUserWithEmailAndPassword(email, password).then(cred => db.collection('users').doc(cred.user.uid).set({ name, email, role })).then(() => { showModal('Pendaftaran Berhasil', 'Akun telah dibuat! Silakan login.'); document.getElementById('show-login-link').click(); }).catch(err => showModal('Pendaftaran Gagal', err.message)).finally(hideLoading); };
+    document.getElementById('login-form').onsubmit = e => { e.preventDefault(); showLoading(); const email = document.getElementById('username').value; const password = document.getElementById('password').value; auth.signInWithEmailAndPassword(email, password).catch(err => showModal('Masuk Gagal', err.message)).finally(hideLoading); };
+    document.getElementById('register-form').onsubmit = e => { e.preventDefault(); showLoading(); const name = document.getElementById('register-name').value; const email = document.getElementById('register-email').value; const password = document.getElementById('register-password').value; const role = email.toLowerCase().endsWith('@ac.id') ? 'admin' : 'siswa'; auth.createUserWithEmailAndPassword(email, password).then(cred => db.collection('users').doc(cred.user.uid).set({ name, email, role })).then(() => { showModal('Pendaftaran Berhasil', 'Akun telah dibuat! Silakan masuk.'); document.getElementById('show-login-link').click(); }).catch(err => showModal('Pendaftaran Gagal', err.message)).finally(hideLoading); };
     document.getElementById('logout-btn').onclick = () => auth.signOut();
     document.getElementById('admin-logout-btn').onclick = () => auth.signOut();
     document.getElementById('back-to-library-btn').onclick = () => updateView('library-view');
@@ -777,8 +823,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (searchTerm) {
                 const lowerCaseSearch = searchTerm.toLowerCase();
                 books = books.filter(book => 
-                    book.title.toLowerCase().includes(lowerCaseSearch) || 
-                    book.author.toLowerCase().includes(lowerCaseSearch)
+                    (book.title && book.title.toLowerCase().includes(lowerCaseSearch)) || 
+                    (book.author && book.author.toLowerCase().includes(lowerCaseSearch))
                 );
             }
 
@@ -841,8 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.oninput = () => {
             const searchTerm = searchInput.value.toLowerCase();
             const filteredBooks = books.filter(book => 
-                book.title.toLowerCase().includes(searchTerm) || 
-                book.author.toLowerCase().includes(searchTerm)
+                (book.title && book.title.toLowerCase().includes(searchTerm)) || 
+                (book.author && book.author.toLowerCase().includes(searchTerm))
             );
             gridEl.innerHTML = filteredBooks.map(createBookCardHTML).join('');
         };
@@ -904,6 +950,68 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- ADMIN VIEW ---
     const bookForm = document.getElementById('book-form');
     const bookContentEditor = document.getElementById('book-content-editor');
+    const bookFontSelector = document.getElementById('book-font');
+    const a5PreviewArea = document.getElementById('a5-preview-area');
+    let previewTimeout;
+
+    function updateA5Preview() {
+        clearTimeout(previewTimeout);
+        previewTimeout = setTimeout(() => {
+            const content = bookContentEditor.innerHTML;
+            const fontFamily = bookFontSelector.value;
+            
+            if (!content.trim()) {
+                a5PreviewArea.innerHTML = `<p style="text-align: center; color: var(--gray-color);">Mulai ketik atau tempel konten untuk melihat pratinjau.</p>`;
+                return;
+            }
+
+            a5PreviewArea.innerHTML = ''; // Clear
+
+            const dummyPage = document.createElement('div');
+            dummyPage.className = 'preview-page';
+            dummyPage.style.fontFamily = fontFamily;
+            a5PreviewArea.appendChild(dummyPage);
+            const pageHeight = dummyPage.clientHeight;
+            a5PreviewArea.innerHTML = '';
+
+            if (pageHeight <= 0) return;
+
+            const sourceDiv = document.createElement('div');
+            sourceDiv.innerHTML = content;
+            const nodes = Array.from(sourceDiv.childNodes);
+            
+            let currentPageDiv = document.createElement('div');
+            currentPageDiv.className = 'preview-page';
+            currentPageDiv.style.fontFamily = fontFamily;
+            a5PreviewArea.appendChild(currentPageDiv);
+            let pageCount = 1;
+
+            for (const node of nodes) {
+                if (node.nodeType === 3 && !node.textContent.trim()) continue;
+
+                currentPageDiv.appendChild(node.cloneNode(true));
+
+                if (currentPageDiv.scrollHeight > pageHeight) {
+                    currentPageDiv.removeChild(currentPageDiv.lastChild);
+                    currentPageDiv.innerHTML += `<div class="preview-page-number">${pageCount}</div>`;
+                    
+                    pageCount++;
+                    currentPageDiv = document.createElement('div');
+                    currentPageDiv.className = 'preview-page';
+                    currentPageDiv.style.fontFamily = fontFamily;
+                    a5PreviewArea.appendChild(currentPageDiv);
+                    currentPageDiv.appendChild(node.cloneNode(true));
+                }
+            }
+            currentPageDiv.innerHTML += `<div class="preview-page-number">${pageCount}</div>`;
+
+        }, 500); // Debounce
+    }
+    bookContentEditor.addEventListener('input', updateA5Preview);
+    bookFontSelector.addEventListener('change', () => {
+        bookContentEditor.style.fontFamily = bookFontSelector.value;
+        updateA5Preview();
+    });
 
     async function renderAdminView() {
         showLoading();
@@ -943,6 +1051,7 @@ document.addEventListener('DOMContentLoaded', () => {
             description: document.getElementById('book-description').value,
             coverUrl: convertImgurLink(document.getElementById('book-cover-url').value),
             content: bookContentEditor.innerHTML,
+            fontFamily: bookFontSelector.value,
         };
 
         try {
@@ -971,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('book-id').value = '';
         document.getElementById('form-title').textContent = 'Tambah Buku Baru';
         document.getElementById('cancel-edit-btn').classList.add('hidden');
+        updateA5Preview();
     }
     
     document.getElementById('cancel-edit-btn').onclick = resetForm;
@@ -983,13 +1093,19 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('book-author').value = book.author;
             document.getElementById('book-description').value = book.description;
             document.getElementById('book-cover-url').value = book.coverUrl;
+            
+            const fontValue = book.fontFamily || 'Poppins, sans-serif';
+            bookFontSelector.value = fontValue;
+            bookContentEditor.style.fontFamily = fontValue;
             bookContentEditor.innerHTML = book.content;
+
             coverPreview.src = book.coverUrl;
             coverPreview.classList.remove('hidden');
             
             document.getElementById('form-title').textContent = 'Edit Buku';
             document.getElementById('cancel-edit-btn').classList.remove('hidden');
             
+            updateA5Preview();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
@@ -1066,6 +1182,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 1500); // Debounce for 1.5 seconds
     }
+    
+    async function saveReadingProgressImmediate(bookId, pageNum) {
+        clearTimeout(saveTimeout);
+         if (currentUserData && bookId) {
+            try {
+                const progressRef = db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId);
+                await progressRef.set({
+                    page: pageNum,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (err) {
+                console.error("Failed to save progress immediately:", err);
+            }
+        }
+    }
 
     async function openReader(bookId, startPage = 0) {
         showLoading();
@@ -1077,7 +1208,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if(!bookDoc.exists) throw new Error("Book not found in DB.");
             book = { id: bookDoc.id, ...bookDoc.data() };
 
-             // Only increment view count if it's the first time opening (or if progress is at page 0)
             if (startPage === 0) {
                  await bookRef.update({ viewCount: firebase.firestore.FieldValue.increment(1) });
                  book.viewCount = (book.viewCount || 0) + 1;
@@ -1093,7 +1223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('book-title-reader').textContent = book.title;
         readerView.classList.remove('hidden');
 
-        // Defer pagination until the view is visible
         requestAnimationFrame(() => {
             const pageContainer = document.querySelector('.page-container');
             if (pageContainer.clientHeight === 0) {
@@ -1104,10 +1233,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const tempPage = document.createElement('div');
             tempPage.classList.add('page');
-            tempPage.style.visibility = 'hidden';
-            tempPage.style.position = 'absolute';
-            tempPage.style.height = pageContainer.clientHeight + 'px';
-            tempPage.style.overflowY = 'hidden'; // FIX: Prevent internal scroll for measurement
+            tempPage.style.cssText = `
+                visibility: hidden; 
+                position: absolute; 
+                height: ${pageContainer.clientHeight}px; 
+                overflow-y: hidden;
+                columns: 1; 
+                font-family: ${book.fontFamily || 'Poppins, sans-serif'};
+            `;
             pageContainer.appendChild(tempPage);
             
             const tempContentDiv = document.createElement('div');
@@ -1121,15 +1254,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(!node.outerHTML) continue;
                 tempPage.innerHTML = currentPageContent + node.outerHTML;
                 
-                if (tempPage.scrollHeight > tempPage.clientHeight) {
-                    if(currentPageContent) pagesHTML.push(`<div class="page">${currentPageContent}</div>`);
+                if (tempPage.scrollHeight > pageContainer.clientHeight) {
+                    if(currentPageContent) pagesHTML.push(`<div class="page" style="font-family: ${book.fontFamily || 'Poppins, sans-serif'}">${currentPageContent}</div>`);
                     currentPageContent = node.outerHTML;
                 } else {
                     currentPageContent += node.outerHTML;
                 }
             }
             if (currentPageContent) {
-                pagesHTML.push(`<div class="page">${currentPageContent}</div>`);
+                pagesHTML.push(`<div class="page" style="font-family: ${book.fontFamily || 'Poppins, sans-serif'}">${currentPageContent}</div>`);
             }
             
             pageContainer.removeChild(tempPage);
@@ -1156,10 +1289,8 @@ document.addEventListener('DOMContentLoaded', () => {
     nextPageBtn.onclick = () => { if (currentPage < totalPages - 1) { currentPage++; updateReaderNav(); } };
     document.getElementById('close-reader-btn').onclick = () => {
         readerView.classList.add('hidden');
-        // Save final page before closing
         const bookId = readerView.dataset.bookId;
-        clearTimeout(saveTimeout);
-        saveReadingProgress(bookId, currentPage);
+        saveReadingProgressImmediate(bookId, currentPage);
         
         if(currentUserData && currentUserData.role === 'siswa') {
             booksCache = []; // Invalidate cache to get fresh view counts
