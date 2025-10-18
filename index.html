@@ -103,12 +103,13 @@
         }
         .form-group { margin-bottom: 20px; text-align: left; }
         .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: var(--secondary-color); }
-        .form-group input, .form-group select {
+        .form-group input, .form-group select, .form-group textarea {
             width: 100%;
             padding: 12px;
             border: 1px solid var(--light-gray);
             border-radius: 8px;
             box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
         }
         .toggle-auth { text-align: center; margin-top: 20px; cursor: pointer; color: var(--primary-color); font-weight: 500; }
         
@@ -119,7 +120,7 @@
         }
         .search-bar input {
             width: 100%;
-            padding: 12px 20px 12px 45px;
+            padding: 12px 45px;
             border-radius: 50px;
             border: 1px solid var(--light-gray);
             font-size: 1em;
@@ -127,12 +128,23 @@
         }
         .search-bar i {
             position: absolute;
-            left: 15px;
+            left: 20px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--gray-color);
         }
-
+        .clear-search-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            color: var(--gray-color);
+            cursor: pointer;
+            padding: 0 5px;
+        }
 
         /* Library View */
         .section-title {
@@ -262,10 +274,128 @@
         .book-detail-info p {
             line-height: 1.7;
         }
-        .continue-reading {
-            font-style: italic;
+        
+        /* Rating & Review Styles */
+        .reviews-section {
+            margin-top: 40px;
+            border-top: 1px solid var(--light-gray);
+            padding-top: 30px;
+        }
+        .rating-summary {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .rating-summary .stars {
+            font-size: 1.5em;
+        }
+        .stars .fa-star {
+            color: var(--accent-color);
+        }
+        .stars .fa-star-half-stroke {
+            color: var(--accent-color);
+        }
+        .stars .fa-star.empty {
+            color: var(--light-gray);
+        }
+        .rating-summary span {
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        .review-form {
+            background-color: #fdfdfd;
+            border: 1px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .review-form h4 {
+            margin-top: 0;
+            text-align: left;
+        }
+        .rating-input {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .rating-input input {
+            display: none;
+        }
+        .rating-input label {
+            font-size: 1.8em;
+            color: var(--light-gray);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .rating-input input:checked ~ label,
+        .rating-input label:hover,
+        .rating-input label:hover ~ label {
+            color: var(--accent-color);
+        }
+
+        .comment-thread {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .comment-card {
+            background: var(--white-color);
+            border: 1px solid var(--light-gray);
+            border-radius: var(--border-radius);
+            padding: 15px;
+        }
+        .comment-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .comment-header strong {
+            font-size: 1em;
+        }
+        .comment-header .stars {
+            font-size: 0.9em;
+        }
+        .comment-body {
+            line-height: 1.6;
+            margin-bottom: 10px;
+            white-space: pre-wrap;
+        }
+        .comment-actions button {
+            background: none;
+            border: none;
             color: var(--primary-color);
-            font-weight: 500;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .reply-form {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+        }
+        .reply-form textarea {
+            flex-grow: 1;
+            border-radius: 8px;
+            border: 1px solid var(--light-gray);
+            padding: 8px;
+            font-family: 'Poppins', sans-serif;
+        }
+        .replies-container {
+            margin-top: 15px;
+            padding-left: 25px;
+            border-left: 2px solid var(--light-gray);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .reply-card {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
         }
 
         
@@ -443,7 +573,7 @@
             color: var(--light-gray);
             cursor: not-allowed;
         }
-
+        
         /* Loading & Modal */
         #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(255, 255, 255, 0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; }
         .progress-spinner { width: 60px; height: 60px; border-radius: 50%; border: 4px solid var(--light-gray); border-top-color: var(--primary-color); animation: spin 1s linear infinite; }
@@ -562,6 +692,7 @@
             <div class="search-bar">
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="library-search-input" placeholder="Cari judul atau penulis...">
+                <button class="clear-search-btn hidden" id="library-search-clear-btn">&times;</button>
             </div>
             <div id="library-content">
                 <!-- Books will be rendered here -->
@@ -580,6 +711,7 @@
             <div class="search-bar">
                 <i class="fa-solid fa-search"></i>
                 <input type="text" id="all-books-search-input" placeholder="Cari di koleksi ini...">
+                <button class="clear-search-btn hidden" id="all-books-search-clear-btn">&times;</button>
             </div>
             <div id="all-books-grid" class="book-grid">
                 <!-- All books for a category will be rendered here -->
@@ -700,12 +832,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentUserData = null;
     let booksCache = [];
+    let booksListenerUnsubscribe = null;
+    let bookDetailListenerUnsubscribe = null;
+    let saveProgressTimeout;
+
 
     const loadingOverlay = document.getElementById('loading-overlay');
     const showLoading = () => loadingOverlay.classList.remove('hidden');
     const hideLoading = () => loadingOverlay.classList.add('hidden');
     
     const updateView = (viewId) => {
+        const currentView = document.querySelector('.view:not(.hidden)');
+        if (currentView && currentView.id === 'book-detail-view' && viewId !== 'book-detail-view') {
+            if (bookDetailListenerUnsubscribe) {
+                bookDetailListenerUnsubscribe();
+                bookDetailListenerUnsubscribe = null;
+            }
+        }
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
         const targetView = document.getElementById(viewId);
         if (targetView) targetView.classList.remove('hidden');
@@ -731,6 +874,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- AUTHENTICATION ---
     auth.onAuthStateChanged(async (user) => {
+        if (booksListenerUnsubscribe) booksListenerUnsubscribe();
+        
         showLoading();
         if (user) {
             try {
@@ -744,15 +889,30 @@ document.addEventListener('DOMContentLoaded', () => {
                         userData.role = 'admin';
                     }
                     currentUserData = { uid: user.uid, ...userData };
-                    if (currentUserData.role === 'admin') {
-                        document.getElementById('welcome-admin').textContent = `Halo, ${currentUserData.name}`;
-                        updateView('admin-view');
-                        renderAdminView();
-                    } else {
-                        document.getElementById('welcome-user').textContent = `Halo, ${currentUserData.name}`;
-                        updateView('library-view');
-                        renderLibrary();
-                    }
+
+                    booksListenerUnsubscribe = db.collection('books').orderBy('createdAt', 'desc')
+                        .onSnapshot(snapshot => {
+                            booksCache = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                            const currentViewEl = document.querySelector('.view:not(.hidden)');
+                            const currentView = currentViewEl ? currentViewEl.id : 'auth-view';
+
+                            if (currentUserData.role === 'admin') {
+                                document.getElementById('welcome-admin').textContent = `Halo, ${currentUserData.name}`;
+                                if(currentView !== 'admin-view') updateView('admin-view');
+                                renderAdminView();
+                            } else {
+                                document.getElementById('welcome-user').textContent = `Halo, ${currentUserData.name}`;
+                                if (currentView === 'library-view' || currentView === 'all-books-view' || currentView === 'auth-view' ) {
+                                     if(currentView === 'auth-view') updateView('library-view');
+                                     renderLibrary();
+                                }
+                            }
+                            hideLoading();
+                        }, err => {
+                            console.error("Error listening to books collection:", err);
+                            hideLoading();
+                        });
+
                 } else { throw new Error("User data not found."); }
             } catch (err) {
                 console.error("Auth error:", err);
@@ -771,7 +931,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('register-form').onsubmit = e => { e.preventDefault(); showLoading(); const name = document.getElementById('register-name').value; const email = document.getElementById('register-email').value; const password = document.getElementById('register-password').value; const role = email.toLowerCase().endsWith('@ac.id') ? 'admin' : 'siswa'; auth.createUserWithEmailAndPassword(email, password).then(cred => db.collection('users').doc(cred.user.uid).set({ name, email, role })).then(() => { showModal('Pendaftaran Berhasil', 'Akun telah dibuat! Silakan masuk.'); document.getElementById('show-login-link').click(); }).catch(err => showModal('Pendaftaran Gagal', err.message)).finally(hideLoading); };
     document.getElementById('logout-btn').onclick = () => auth.signOut();
     document.getElementById('admin-logout-btn').onclick = () => auth.signOut();
-    document.getElementById('back-to-library-btn').onclick = () => updateView('library-view');
+    document.getElementById('back-to-library-btn').onclick = () => {
+        showLoading();
+        updateView('library-view');
+        setTimeout(hideLoading, 250);
+    };
 
 
     // --- IMGUR LINK CONVERTER & PREVIEW ---
@@ -798,78 +962,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- STUDENT LIBRARY VIEW ---
-    async function fetchBooks() {
-        if (booksCache.length > 0) return booksCache;
-        const snapshot = await db.collection('books').orderBy('createdAt', 'desc').get();
-        booksCache = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        return booksCache;
-    }
-
     const createBookCardHTML = (book) => `
         <div class="book-card" data-id="${book.id}">
             <div class="book-cover"><img src="${book.coverUrl}" alt="${book.title}" loading="lazy"></div>
             <h3>${book.title}</h3>
             <p>${book.author}</p>
-            <p><i class="fa-solid fa-eye fa-xs"></i> ${book.viewCount || 0}</p>
+            <p><i class="fa-solid fa-star" style="color: var(--accent-color);"></i> <b>${(book.avgRating || 0).toFixed(1)}</b> &nbsp; <i class="fa-solid fa-eye fa-xs"></i> ${book.viewCount || 0}</p>
         </div>
     `;
 
-    async function renderLibrary(searchTerm = "") {
-        showLoading();
+    function renderLibrary(searchTerm = "") {
         const libraryContent = document.getElementById('library-content');
-        try {
-            let books = await fetchBooks();
-
-            if (searchTerm) {
-                const lowerCaseSearch = searchTerm.toLowerCase();
-                books = books.filter(book => 
-                    (book.title && book.title.toLowerCase().includes(lowerCaseSearch)) || 
-                    (book.author && book.author.toLowerCase().includes(lowerCaseSearch))
-                );
-            }
-
-            const newBooks = books.slice(0, 15);
-            const popularBooks = [...books].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 15);
-            
-            const seeAllCard = (category) => `
-                <div class="see-all-card" data-category="${category}">
-                    <i class="fa-solid fa-arrow-right"></i>
-                    <span>Lihat Semua</span>
-                </div>
-            `;
-            
-            let html = `
-                <section>
-                    <h2 class="section-title">Buku Terbaru</h2>
-                    <div class="book-scroll-container">
-                        ${newBooks.map(createBookCardHTML).join('')}
-                        ${seeAllCard('terbaru')}
-                    </div>
-                </section>
-                <section style="margin-top: 40px;">
-                    <h2 class="section-title">Paling Populer</h2>
-                    <div class="book-scroll-container">
-                        ${popularBooks.map(createBookCardHTML).join('')}
-                        ${seeAllCard('populer')}
-                    </div>
-                </section>
-            `;
-            libraryContent.innerHTML = html;
-        } catch (err) {
-            console.error("Failed to render library:", err);
-            libraryContent.innerHTML = "<p>Gagal memuat buku.</p>";
-        } finally {
-            hideLoading();
+        let books = booksCache;
+        if (searchTerm) {
+            const lowerCaseSearch = searchTerm.toLowerCase();
+            books = books.filter(book => 
+                (book.title && book.title.toLowerCase().includes(lowerCaseSearch)) || 
+                (book.author && book.author.toLowerCase().includes(lowerCaseSearch))
+            );
         }
+        const newBooks = books.slice(0, 15);
+        const popularBooks = [...books].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0)).slice(0, 15);
+        const seeAllCard = (category) => `<div class="see-all-card" data-category="${category}"><i class="fa-solid fa-arrow-right"></i><span>Lihat Semua</span></div>`;
+        libraryContent.innerHTML = `
+            <section><h2 class="section-title">Buku Terbaru</h2><div class="book-scroll-container">${newBooks.map(createBookCardHTML).join('')}${seeAllCard('terbaru')}</div></section>
+            <section style="margin-top: 40px;"><h2 class="section-title">Paling Populer</h2><div class="book-scroll-container">${popularBooks.map(createBookCardHTML).join('')}${seeAllCard('populer')}</div></section>`;
     }
     
     // --- ALL BOOKS VIEW ---
-    async function renderAllBooksView(category) {
+    function renderAllBooksView(category) {
         showLoading();
         updateView('all-books-view');
         const titleEl = document.getElementById('all-books-title');
         const gridEl = document.getElementById('all-books-grid');
-        
         let books = [];
         if (category === 'terbaru') {
             titleEl.textContent = "Semua Buku Terbaru";
@@ -878,74 +1003,112 @@ document.addEventListener('DOMContentLoaded', () => {
             titleEl.textContent = "Semua Buku Populer";
             books = [...booksCache].sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
         }
-        
         gridEl.innerHTML = books.map(createBookCardHTML).join('');
         hideLoading();
-
-        const searchInput = document.getElementById('all-books-search-input');
-        searchInput.value = '';
-        searchInput.oninput = () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredBooks = books.filter(book => 
-                (book.title && book.title.toLowerCase().includes(searchTerm)) || 
-                (book.author && book.author.toLowerCase().includes(searchTerm))
-            );
-            gridEl.innerHTML = filteredBooks.map(createBookCardHTML).join('');
-        };
     }
 
     // --- BOOK DETAIL VIEW ---
-    async function showBookDetail(bookId) {
-        showLoading();
-        updateView('book-detail-view');
-        const book = booksCache.find(b => b.id === bookId);
-        if (!book) {
-            hideLoading();
-            showModal("Error", "Buku tidak ditemukan.");
-            updateView('library-view');
-            return;
-        }
-
-        let startPage = 0;
-        let progressText = "";
-        try {
-            const progressDoc = await db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId).get();
-            if (progressDoc.exists) {
-                startPage = progressDoc.data().page || 0;
-                if (startPage > 0) {
-                     progressText = `<p class="continue-reading">Lanjutkan membaca dari halaman ${startPage + 1}</p>`;
-                }
+    async function renderBookDetailContent(book, reviews, userRatingDoc) {
+        const avgRating = book.avgRating || 0;
+        const reviewCount = book.ratingCount || 0;
+        const generateStarsHTML = (rating) => {
+            let stars = ''; const fullStars = Math.floor(rating); const halfStar = rating % 1 >= 0.5;
+            for (let i = 1; i <= 5; i++) {
+                if (i <= fullStars) stars += `<i class="fa-solid fa-star"></i>`;
+                else if (i === fullStars + 1 && halfStar) stars += `<i class="fa-solid fa-star-half-stroke"></i>`;
+                else stars += `<i class="fa-regular fa-star"></i>`;
             }
-        } catch (err) {
-            console.error("Could not fetch reading progress", err);
-        }
+            return `<div class="stars">${stars}</div>`;
+        };
+        const generateRepliesHTML = (replies) => {
+            if (!replies || replies.length === 0) return '';
+            return `<div class="replies-container">${replies.map(reply => `<div class="reply-card"><div class="comment-header"><strong>${reply.userName}</strong></div><div class="comment-body">${reply.text}</div></div>`).join('')}</div>`;
+        };
 
+        const reviewsHTML = reviews.map(review => `
+            <div class="comment-card" id="review-${review.id}">
+                <div class="comment-header"><strong>${review.userName}</strong>${generateStarsHTML(review.rating)}</div>
+                <div class="comment-body">${review.comment}</div>
+                ${generateRepliesHTML(review.replies)}
+                <div class="comment-actions"><button class="reply-btn" data-comment-id="${review.id}">Balas</button></div>
+                <div class="reply-form hidden" id="reply-form-${review.id}">
+                    <textarea placeholder="Tulis balasan..."></textarea>
+                    <button class="btn btn-sm submit-reply-btn" data-book-id="${book.id}" data-comment-id="${review.id}">Kirim</button>
+                </div>
+            </div>`).join('');
+        
+        let ratingInputHTML = '';
+        for (let i = 5; i >= 1; i--) {
+            const checked = userRatingDoc && userRatingDoc.rating === i ? 'checked' : '';
+            ratingInputHTML += `<input type="radio" id="star${i}" name="rating" value="${i}" ${checked}><label for="star${i}"><i class="fa-solid fa-star"></i></label>`;
+        }
+        
         const detailViewContainer = document.querySelector('#book-detail-view .container');
         detailViewContainer.innerHTML = `
             <button class="btn btn-secondary" id="back-to-main-library-detail" style="margin-bottom: 20px; width: auto;"><i class="fa-solid fa-arrow-left"></i> Kembali</button>
             <div class="book-detail-container">
-                <div class="book-detail-cover">
-                    <img src="${book.coverUrl}" alt="${book.title}">
-                </div>
+                <div class="book-detail-cover"><img src="${book.coverUrl}" alt="${book.title}"></div>
                 <div class="book-detail-info">
-                    <h2>${book.title}</h2>
-                    <h3>oleh ${book.author}</h3>
-                    ${progressText}
-                    <p>${book.description}</p>
-                    <button id="start-reading-btn" class="btn" style="width: auto; margin-top: 20px;">
-                        <i class="fa-solid fa-book-open"></i> 
-                        ${startPage > 0 ? 'Lanjutkan Membaca' : 'Mulai Membaca'}
-                    </button>
+                    <h2>${book.title}</h2><h3>oleh ${book.author}</h3><p>${book.description}</p>
+                    <button id="start-reading-btn" class="btn" style="width: auto; margin-top: 20px;"><i class="fa-solid fa-book-open"></i> Mulai Membaca</button>
                 </div>
             </div>
-        `;
+            <div class="reviews-section">
+                <h3 class="section-title">Ulasan & Rating</h3>
+                <div class="rating-summary">${generateStarsHTML(avgRating)}<span>${avgRating.toFixed(1)}/5</span><span>(${reviewCount} ulasan)</span></div>
+                
+                <div class="review-form" id="rating-form-container">
+                    <h4>Beri Rating Anda</h4>
+                    <p>Pilih bintang untuk memberi atau mengubah rating Anda.</p>
+                    <div class="rating-input" data-book-id="${book.id}">${ratingInputHTML}</div>
+                    <small id="user-rating-text">${userRatingDoc ? `Rating Anda: ${userRatingDoc.rating} bintang.` : 'Anda belum memberikan rating.'}</small>
+                </div>
 
-        document.getElementById('back-to-main-library-detail').onclick = () => updateView('library-view');
-        document.getElementById('start-reading-btn').onclick = () => openReader(bookId, startPage);
+                <div class="review-form" id="comment-form-container" style="margin-top: 20px;">
+                    <h4>Tulis Ulasan</h4>
+                    <form id="review-submission-form" data-book-id="${book.id}">
+                        <div class="form-group"><textarea id="comment-input" class="form-control" rows="3" placeholder="Bagikan pendapat Anda tentang buku ini..." required></textarea></div>
+                        <button type="submit" class="btn">Kirim Ulasan</button>
+                    </form>
+                </div>
 
-        hideLoading();
+                <div class="comment-thread">${reviewsHTML || '<p>Jadilah yang pertama memberikan ulasan!</p>'}</div>
+            </div>`;
+
+        document.getElementById('back-to-main-library-detail').onclick = () => {
+            showLoading();
+            updateView('library-view');
+            renderLibrary(); // Re-render library to show latest ratings
+            setTimeout(hideLoading, 250);
+        };
+        document.getElementById('start-reading-btn').onclick = () => openReader(book.id);
     }
 
+    function showBookDetail(bookId) {
+        showLoading();
+        updateView('book-detail-view');
+        if (bookDetailListenerUnsubscribe) bookDetailListenerUnsubscribe();
+        
+        const bookRef = db.collection('books').doc(bookId);
+        bookDetailListenerUnsubscribe = bookRef.onSnapshot(async bookDoc => {
+            if (!bookDoc.exists) { showModal("Error", "Buku ini mungkin telah dihapus.").then(() => updateView('library-view')); return; }
+            const bookData = { id: bookDoc.id, ...bookDoc.data() };
+            
+            let userRatingDoc = null;
+            if (currentUserData) {
+                const ratingRef = db.collection('books').doc(bookId).collection('ratings').doc(currentUserData.uid);
+                const ratingSnap = await ratingRef.get();
+                if(ratingSnap.exists) userRatingDoc = ratingSnap.data();
+            }
+
+            const reviewsRef = bookRef.collection('reviews').orderBy('createdAt', 'desc');
+            reviewsRef.onSnapshot(reviewsSnapshot => {
+                const reviewsData = reviewsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderBookDetailContent(bookData, reviewsData, userRatingDoc);
+                hideLoading();
+            }, err => { console.error("Error listening to reviews:", err); hideLoading(); });
+        }, err => { console.error("Error listening to book details:", err); hideLoading(); });
+    }
 
     // --- ADMIN VIEW ---
     const bookForm = document.getElementById('book-form');
@@ -959,204 +1122,88 @@ document.addEventListener('DOMContentLoaded', () => {
         previewTimeout = setTimeout(() => {
             const content = bookContentEditor.innerHTML;
             const fontFamily = bookFontSelector.value;
-            
-            if (!content.trim()) {
-                a5PreviewArea.innerHTML = `<p style="text-align: center; color: var(--gray-color);">Mulai ketik atau tempel konten untuk melihat pratinjau.</p>`;
-                return;
-            }
-
-            a5PreviewArea.innerHTML = ''; // Clear
-
+            if (!content.trim()) { a5PreviewArea.innerHTML = `<p style="text-align: center; color: var(--gray-color);">Mulai ketik atau tempel konten untuk melihat pratinjau.</p>`; return; }
+            a5PreviewArea.innerHTML = '';
             const dummyPage = document.createElement('div');
             dummyPage.className = 'preview-page';
             dummyPage.style.fontFamily = fontFamily;
             a5PreviewArea.appendChild(dummyPage);
-            const pageHeight = dummyPage.clientHeight;
-            a5PreviewArea.innerHTML = '';
-
+            const pageHeight = dummyPage.clientHeight; a5PreviewArea.innerHTML = '';
             if (pageHeight <= 0) return;
-
-            const sourceDiv = document.createElement('div');
-            sourceDiv.innerHTML = content;
+            const sourceDiv = document.createElement('div'); sourceDiv.innerHTML = content;
             const nodes = Array.from(sourceDiv.childNodes);
-            
-            let currentPageDiv = document.createElement('div');
-            currentPageDiv.className = 'preview-page';
-            currentPageDiv.style.fontFamily = fontFamily;
-            a5PreviewArea.appendChild(currentPageDiv);
+            let currentPageDiv = document.createElement('div'); currentPageDiv.className = 'preview-page'; currentPageDiv.style.fontFamily = fontFamily; a5PreviewArea.appendChild(currentPageDiv);
             let pageCount = 1;
-
             for (const node of nodes) {
                 if (node.nodeType === 3 && !node.textContent.trim()) continue;
-
                 currentPageDiv.appendChild(node.cloneNode(true));
-
                 if (currentPageDiv.scrollHeight > pageHeight) {
                     currentPageDiv.removeChild(currentPageDiv.lastChild);
-                    currentPageDiv.innerHTML += `<div class="preview-page-number">${pageCount}</div>`;
-                    
-                    pageCount++;
-                    currentPageDiv = document.createElement('div');
-                    currentPageDiv.className = 'preview-page';
-                    currentPageDiv.style.fontFamily = fontFamily;
-                    a5PreviewArea.appendChild(currentPageDiv);
+                    currentPageDiv.innerHTML += `<div class="preview-page-number">${pageCount}</div>`; pageCount++;
+                    currentPageDiv = document.createElement('div'); currentPageDiv.className = 'preview-page'; currentPageDiv.style.fontFamily = fontFamily; a5PreviewArea.appendChild(currentPageDiv);
                     currentPageDiv.appendChild(node.cloneNode(true));
                 }
             }
             currentPageDiv.innerHTML += `<div class="preview-page-number">${pageCount}</div>`;
-
-        }, 500); // Debounce
+        }, 500);
     }
     bookContentEditor.addEventListener('input', updateA5Preview);
-    bookFontSelector.addEventListener('change', () => {
-        bookContentEditor.style.fontFamily = bookFontSelector.value;
-        updateA5Preview();
-    });
+    bookFontSelector.addEventListener('change', () => { bookContentEditor.style.fontFamily = bookFontSelector.value; updateA5Preview(); });
 
-    async function renderAdminView() {
-        showLoading();
+    function renderAdminView() {
         const adminBookList = document.getElementById('admin-book-list');
-        try {
-            const books = await fetchBooks();
-            adminBookList.innerHTML = books.map(book => `
-                <div class="item-card">
-                    <div style="display: flex; gap: 15px; align-items: flex-start;">
-                        <img src="${book.coverUrl}" style="width: 60px; height: 90px; object-fit: cover; border-radius: 4px;">
-                        <div style="flex-grow: 1;">
-                            <h3>${book.title}</h3>
-                            <p>${book.author}</p>
-                        </div>
-                        <div>
-                            <button class="btn btn-secondary edit-book-btn" data-id="${book.id}"><i class="fa-solid fa-pen"></i></button>
-                            <button class="btn btn-danger delete-book-btn" data-id="${book.id}"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
+        adminBookList.innerHTML = booksCache.map(book => `
+            <div class="item-card">
+                <div style="display: flex; gap: 15px; align-items: flex-start;">
+                    <img src="${book.coverUrl}" style="width: 60px; height: 90px; object-fit: cover; border-radius: 4px;">
+                    <div style="flex-grow: 1;"><h3>${book.title}</h3><p>${book.author}</p></div>
+                    <div><button class="btn btn-secondary edit-book-btn" data-id="${book.id}"><i class="fa-solid fa-pen"></i></button><button class="btn btn-danger delete-book-btn" data-id="${book.id}"><i class="fa-solid fa-trash"></i></button></div>
                 </div>
-            `).join('');
-        } catch (err) {
-            console.error("Failed to render admin list:", err);
-            adminBookList.innerHTML = "<p>Gagal memuat daftar buku.</p>";
-        } finally {
-            hideLoading();
-        }
+            </div>`).join('');
     }
 
     bookForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading();
+        e.preventDefault(); showLoading();
         const id = document.getElementById('book-id').value;
-        const payload = {
-            title: document.getElementById('book-title').value,
-            author: document.getElementById('book-author').value,
-            description: document.getElementById('book-description').value,
-            coverUrl: convertImgurLink(document.getElementById('book-cover-url').value),
-            content: bookContentEditor.innerHTML,
-            fontFamily: bookFontSelector.value,
-        };
-
+        const payload = { title: document.getElementById('book-title').value, author: document.getElementById('book-author').value, description: document.getElementById('book-description').value, coverUrl: convertImgurLink(document.getElementById('book-cover-url').value), content: bookContentEditor.innerHTML, fontFamily: bookFontSelector.value };
         try {
-            if (id) {
-                await db.collection('books').doc(id).update(payload);
-            } else {
-                payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                payload.viewCount = 0;
-                await db.collection('books').add(payload);
-            }
-            booksCache = []; // Invalidate cache
+            if (id) await db.collection('books').doc(id).update(payload);
+            else { payload.createdAt = firebase.firestore.FieldValue.serverTimestamp(); payload.viewCount = 0; payload.ratingCount = 0; payload.avgRating = 0; await db.collection('books').add(payload); }
             resetForm();
-            renderAdminView();
-        } catch (err) {
-            console.error("Error saving book:", err);
-            showModal('Error', 'Gagal menyimpan buku.');
-        } finally {
-            hideLoading();
-        }
+        } catch (err) { console.error("Error saving book:", err); showModal('Error', 'Gagal menyimpan buku.');
+        } finally { hideLoading(); }
     };
     
     function resetForm() {
-        bookForm.reset();
-        bookContentEditor.innerHTML = '';
-        coverPreview.classList.add('hidden');
-        document.getElementById('book-id').value = '';
-        document.getElementById('form-title').textContent = 'Tambah Buku Baru';
-        document.getElementById('cancel-edit-btn').classList.add('hidden');
-        updateA5Preview();
+        bookForm.reset(); bookContentEditor.innerHTML = ''; coverPreview.classList.add('hidden');
+        document.getElementById('book-id').value = ''; document.getElementById('form-title').textContent = 'Tambah Buku Baru';
+        document.getElementById('cancel-edit-btn').classList.add('hidden'); updateA5Preview();
     }
-    
     document.getElementById('cancel-edit-btn').onclick = resetForm;
     
     function editBook(id) {
         const book = booksCache.find(b => b.id === id);
         if (book) {
-            document.getElementById('book-id').value = book.id;
-            document.getElementById('book-title').value = book.title;
-            document.getElementById('book-author').value = book.author;
-            document.getElementById('book-description').value = book.description;
-            document.getElementById('book-cover-url').value = book.coverUrl;
-            
-            const fontValue = book.fontFamily || 'Poppins, sans-serif';
-            bookFontSelector.value = fontValue;
-            bookContentEditor.style.fontFamily = fontValue;
-            bookContentEditor.innerHTML = book.content;
-
-            coverPreview.src = book.coverUrl;
-            coverPreview.classList.remove('hidden');
-            
-            document.getElementById('form-title').textContent = 'Edit Buku';
-            document.getElementById('cancel-edit-btn').classList.remove('hidden');
-            
-            updateA5Preview();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            document.getElementById('book-id').value = book.id; document.getElementById('book-title').value = book.title;
+            document.getElementById('book-author').value = book.author; document.getElementById('book-description').value = book.description;
+            document.getElementById('book-cover-url').value = book.coverUrl; const fontValue = book.fontFamily || 'Poppins, sans-serif';
+            bookFontSelector.value = fontValue; bookContentEditor.style.fontFamily = fontValue; bookContentEditor.innerHTML = book.content;
+            coverPreview.src = book.coverUrl; coverPreview.classList.remove('hidden');
+            document.getElementById('form-title').textContent = 'Edit Buku'; document.getElementById('cancel-edit-btn').classList.remove('hidden');
+            updateA5Preview(); window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
 
     async function deleteBook(id) {
         if (await showModal('Konfirmasi Hapus', 'Anda yakin ingin menghapus buku ini? Tindakan ini tidak dapat diurungkan.', true)) {
             showLoading();
-            try {
-                if (!id) throw new Error("ID buku tidak valid.");
-                await db.collection('books').doc(id).delete();
-                booksCache = []; // Invalidate cache
-                renderAdminView();
-            } catch (err) {
-                console.error("Error deleting book:", err);
-                showModal('Error', `Gagal menghapus buku: ${err.message}`);
-            } finally {
-                hideLoading();
-            }
+            try { if (!id) throw new Error("ID buku tidak valid."); await db.collection('books').doc(id).delete();
+            } catch (err) { console.error("Error deleting book:", err); showModal('Error', `Gagal menghapus buku: ${err.message}`);
+            } finally { hideLoading(); }
         }
     }
     
-    // --- EVENT LISTENERS (DELEGATION) ---
-    document.getElementById('admin-book-list').addEventListener('click', (e) => {
-        const editBtn = e.target.closest('.edit-book-btn');
-        if (editBtn) editBook(editBtn.dataset.id);
-
-        const deleteBtn = e.target.closest('.delete-book-btn');
-        if (deleteBtn) deleteBook(deleteBtn.dataset.id);
-    });
-
-    document.body.addEventListener('click', (e) => {
-        const bookCard = e.target.closest('.book-card');
-        if (bookCard) {
-            const currentView = document.querySelector('.view:not(.hidden)').id;
-            if (currentView === 'library-view' || currentView === 'all-books-view') {
-                showBookDetail(bookCard.dataset.id);
-            }
-        }
-
-        const seeAllCard = e.target.closest('.see-all-card');
-        if (seeAllCard) {
-            renderAllBooksView(seeAllCard.dataset.category);
-        }
-    });
-
-    document.getElementById('library-search-input').addEventListener('input', (e) => {
-        renderLibrary(e.target.value);
-    });
-
-
-    // --- READER LOGIC ---
+    // --- READER LOGIC (Reverted to Slider) ---
     const readerView = document.getElementById('reader-view');
     const pageSlider = document.getElementById('page-slider');
     const pageIndicator = document.getElementById('page-indicator');
@@ -1164,59 +1211,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextPageBtn = document.getElementById('next-page-btn');
     let currentPage = 0;
     let totalPages = 0;
-    let saveTimeout;
-
-    function saveReadingProgress(bookId, pageNum) {
-        clearTimeout(saveTimeout);
-        saveTimeout = setTimeout(async () => {
-            if (currentUserData && bookId) {
-                try {
-                    const progressRef = db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId);
-                    await progressRef.set({
-                        page: pageNum,
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-                } catch (err) {
-                    console.error("Failed to save progress:", err);
-                }
-            }
-        }, 1500); // Debounce for 1.5 seconds
-    }
     
-    async function saveReadingProgressImmediate(bookId, pageNum) {
-        clearTimeout(saveTimeout);
-         if (currentUserData && bookId) {
-            try {
-                const progressRef = db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId);
-                await progressRef.set({
-                    page: pageNum,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            } catch (err) {
-                console.error("Failed to save progress immediately:", err);
-            }
-        }
-    }
-
-    async function openReader(bookId, startPage = 0) {
+    async function openReader(bookId) {
         showLoading();
-        let book = booksCache.find(b => b.id === bookId);
-        
+        let startPage = 0;
         try {
-            const bookRef = db.collection('books').doc(bookId);
-            const bookDoc = await bookRef.get();
-            if(!bookDoc.exists) throw new Error("Book not found in DB.");
-            book = { id: bookDoc.id, ...bookDoc.data() };
+            const progressDoc = await db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId).get();
+            if (progressDoc.exists) startPage = progressDoc.data().page || 0;
+        } catch (err) { console.error("Could not get reading progress", err); }
+        
+        const book = booksCache.find(b => b.id === bookId);
+        if (!book) { hideLoading(); showModal("Error", "Buku tidak ditemukan."); return; }
 
-            if (startPage === 0) {
-                 await bookRef.update({ viewCount: firebase.firestore.FieldValue.increment(1) });
-                 book.viewCount = (book.viewCount || 0) + 1;
-            }
-            const bookIndex = booksCache.findIndex(b => b.id === bookId);
-            if(bookIndex !== -1) booksCache[bookIndex] = book;
-
-        } catch (err) {
-            console.error("Error opening reader:", err);
+        if (startPage === 0) {
+            db.collection('books').doc(bookId).update({ viewCount: firebase.firestore.FieldValue.increment(1) });
         }
 
         readerView.dataset.bookId = bookId;
@@ -1225,50 +1233,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         requestAnimationFrame(() => {
             const pageContainer = document.querySelector('.page-container');
-            if (pageContainer.clientHeight === 0) {
-                hideLoading();
-                showModal("Error", "Gagal memuat buku. Silakan coba lagi.");
-                return;
-            }
+            const pageEl = document.createElement('div');
+            pageEl.className = 'page';
+            pageEl.style.visibility = 'hidden';
+            pageEl.style.position = 'absolute';
+            pageEl.style.height = `${pageContainer.clientHeight}px`;
+            pageContainer.appendChild(pageEl);
 
-            const tempPage = document.createElement('div');
-            tempPage.classList.add('page');
-            tempPage.style.cssText = `
-                visibility: hidden; 
-                position: absolute; 
-                height: ${pageContainer.clientHeight}px; 
-                overflow-y: hidden;
-                columns: 1; 
-                font-family: ${book.fontFamily || 'Poppins, sans-serif'};
-            `;
-            pageContainer.appendChild(tempPage);
+            const pageHeight = pageContainer.clientHeight;
+            const content = book.content || '';
             
-            const tempContentDiv = document.createElement('div');
-            tempContentDiv.innerHTML = book.content;
+            const tempDiv = document.createElement('div');
+            tempDiv.style.fontFamily = book.fontFamily || 'Poppins, sans-serif';
+            tempDiv.style.visibility = 'hidden';
+            tempDiv.style.position = 'absolute';
+            tempDiv.innerHTML = content;
+            document.body.appendChild(tempDiv);
             
-            const nodes = Array.from(tempContentDiv.childNodes);
-            let pagesHTML = [];
-            let currentPageContent = '';
-
+            const nodes = Array.from(tempDiv.childNodes);
+            let pagesContent = [];
+            
+            pageEl.innerHTML = '';
             for (const node of nodes) {
                 if(!node.outerHTML) continue;
-                tempPage.innerHTML = currentPageContent + node.outerHTML;
+                const oldHTML = pageEl.innerHTML;
+                pageEl.innerHTML += node.outerHTML;
                 
-                if (tempPage.scrollHeight > pageContainer.clientHeight) {
-                    if(currentPageContent) pagesHTML.push(`<div class="page" style="font-family: ${book.fontFamily || 'Poppins, sans-serif'}">${currentPageContent}</div>`);
-                    currentPageContent = node.outerHTML;
-                } else {
-                    currentPageContent += node.outerHTML;
+                if (pageEl.scrollHeight > pageHeight) {
+                    pagesContent.push(oldHTML);
+                    pageEl.innerHTML = node.outerHTML;
                 }
             }
-            if (currentPageContent) {
-                pagesHTML.push(`<div class="page" style="font-family: ${book.fontFamily || 'Poppins, sans-serif'}">${currentPageContent}</div>`);
-            }
+            if (pageEl.innerHTML) pagesContent.push(pageEl.innerHTML);
             
-            pageContainer.removeChild(tempPage);
-            pageSlider.innerHTML = pagesHTML.join('');
+            pageContainer.removeChild(pageEl);
+            document.body.removeChild(tempDiv);
             
-            totalPages = pagesHTML.length > 0 ? pagesHTML.length : 1;
+            pageSlider.innerHTML = pagesContent.map(pContent => `<div class="page" style="font-family: ${book.fontFamily || 'Poppins, sans-serif'}">${pContent}</div>`).join('');
+            
+            totalPages = pagesContent.length > 0 ? pagesContent.length : 1;
             currentPage = startPage < totalPages ? startPage : 0;
             updateReaderNav();
             hideLoading();
@@ -1280,24 +1283,124 @@ document.addEventListener('DOMContentLoaded', () => {
         prevPageBtn.disabled = currentPage === 0;
         nextPageBtn.disabled = currentPage >= totalPages - 1;
         pageSlider.style.transform = `translateX(-${currentPage * 100}%)`;
-
         const bookId = readerView.dataset.bookId;
         saveReadingProgress(bookId, currentPage);
     }
 
+    function saveReadingProgress(bookId, pageNum) {
+        clearTimeout(saveProgressTimeout);
+        saveProgressTimeout = setTimeout(async () => {
+            if (currentUserData && bookId) {
+                try {
+                    const progressRef = db.collection('users').doc(currentUserData.uid).collection('reading_progress').doc(bookId);
+                    await progressRef.set({ page: pageNum, updatedAt: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                } catch (err) { console.error("Failed to save progress:", err); }
+            }
+        }, 1500);
+    }
+    
     prevPageBtn.onclick = () => { if (currentPage > 0) { currentPage--; updateReaderNav(); } };
     nextPageBtn.onclick = () => { if (currentPage < totalPages - 1) { currentPage++; updateReaderNav(); } };
-    document.getElementById('close-reader-btn').onclick = () => {
-        readerView.classList.add('hidden');
-        const bookId = readerView.dataset.bookId;
-        saveReadingProgressImmediate(bookId, currentPage);
-        
-        if(currentUserData && currentUserData.role === 'siswa') {
-            booksCache = []; // Invalidate cache to get fresh view counts
-            renderLibrary(document.getElementById('library-search-input').value);
-        }
-    };
+    document.getElementById('close-reader-btn').onclick = () => readerView.classList.add('hidden');
+    
+    // --- SEARCH CLEAR LOGIC ---
+    function setupSearchClear(inputId, clearBtnId, callback) {
+        const input = document.getElementById(inputId);
+        const clearBtn = document.getElementById(clearBtnId);
+        input.addEventListener('input', () => {
+            clearBtn.classList.toggle('hidden', input.value.length === 0);
+            callback(input.value);
+        });
+        clearBtn.addEventListener('click', () => {
+            input.value = '';
+            input.dispatchEvent(new Event('input'));
+        });
+    }
 
+    setupSearchClear('library-search-input', 'library-search-clear-btn', (value) => renderLibrary(value));
+    setupSearchClear('all-books-search-input', 'all-books-search-clear-btn', (value) => {
+        const gridEl = document.getElementById('all-books-grid');
+        const searchTerm = value.toLowerCase();
+        const allBookCards = gridEl.querySelectorAll('.book-card');
+        allBookCards.forEach(card => {
+            const title = card.querySelector('h3').textContent.toLowerCase();
+            const author = card.querySelector('p').textContent.toLowerCase();
+            card.style.display = (title.includes(searchTerm) || author.includes(searchTerm)) ? '' : 'none';
+        });
+    });
+
+
+    // --- GLOBAL EVENT LISTENERS ---
+    document.getElementById('admin-book-list').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-book-btn'); if (editBtn) editBook(editBtn.dataset.id);
+        const deleteBtn = e.target.closest('.delete-book-btn'); if (deleteBtn) deleteBook(deleteBtn.dataset.id);
+    });
+
+    document.body.addEventListener('click', async (e) => {
+        const bookCard = e.target.closest('.book-card');
+        if (bookCard) { const currentView = document.querySelector('.view:not(.hidden)').id; if (currentView === 'library-view' || currentView === 'all-books-view') showBookDetail(bookCard.dataset.id); }
+        
+        const seeAllCard = e.target.closest('.see-all-card'); 
+        if (seeAllCard) renderAllBooksView(seeAllCard.dataset.category);
+        
+        const replyBtn = e.target.closest('.reply-btn'); 
+        if (replyBtn) { const commentId = replyBtn.dataset.commentId; document.getElementById(`reply-form-${commentId}`).classList.toggle('hidden'); }
+        
+        const submitReplyBtn = e.target.closest('.submit-reply-btn');
+        if (submitReplyBtn) {
+            submitReplyBtn.disabled = true; const { bookId, commentId } = submitReplyBtn.dataset; const textarea = submitReplyBtn.parentElement.querySelector('textarea'); const replyText = textarea.value.trim();
+            if (replyText && currentUserData) {
+                try {
+                    const replyPayload = { userId: currentUserData.uid, userName: currentUserData.name, text: replyText, createdAt: new Date() };
+                    const reviewRef = db.collection('books').doc(bookId).collection('reviews').doc(commentId);
+                    await reviewRef.update({ replies: firebase.firestore.FieldValue.arrayUnion(replyPayload) });
+                } catch (err) { console.error("Error submitting reply:", err); showModal('Error', 'Gagal mengirim balasan.'); submitReplyBtn.disabled = false; }
+            } else submitReplyBtn.disabled = false;
+        }
+
+        const ratingLabel = e.target.closest('.rating-input label');
+        if(ratingLabel) {
+            const ratingInput = document.getElementById(ratingLabel.getAttribute('for'));
+            const ratingValue = Number(ratingInput.value);
+            const bookId = ratingInput.closest('.rating-input').dataset.bookId;
+            
+            if (!currentUserData) return;
+            showLoading();
+            const ratingRef = db.collection('books').doc(bookId).collection('ratings').doc(currentUserData.uid);
+            await ratingRef.set({ rating: ratingValue });
+
+            // Update average in a transaction
+            const bookRef = db.collection('books').doc(bookId);
+            await db.runTransaction(async (transaction) => {
+                const ratingsSnapshot = await bookRef.collection('ratings').get();
+                const ratings = ratingsSnapshot.docs.map(doc => doc.data().rating);
+                const ratingCount = ratings.length;
+                const avgRating = ratingCount > 0 ? ratings.reduce((a, b) => a + b, 0) / ratingCount : 0;
+                transaction.update(bookRef, { ratingCount, avgRating });
+            }).catch(err => {
+                console.error("Transaction failed: ", err);
+                showModal('Error', 'Gagal menyimpan rating.');
+            }).finally(hideLoading);
+        }
+    });
+
+    document.body.addEventListener('submit', async (e) => {
+        if (e.target.id === 'review-submission-form') {
+            e.preventDefault(); const form = e.target; const bookId = form.dataset.bookId; const comment = form.querySelector('#comment-input').value.trim();
+            if (!comment || !currentUserData) { showModal('Error', 'Komentar tidak boleh kosong.'); return; }
+            showLoading();
+            
+            try {
+                const ratingRef = db.collection('books').doc(bookId).collection('ratings').doc(currentUserData.uid);
+                const ratingSnap = await ratingRef.get();
+                const userRating = ratingSnap.exists ? ratingSnap.data().rating : 0;
+
+                await db.collection('books').doc(bookId).collection('reviews').add({ userId: currentUserData.uid, userName: currentUserData.name, rating: userRating, comment, createdAt: firebase.firestore.FieldValue.serverTimestamp(), replies: [] });
+                form.reset();
+            } catch (err) { console.error("Error submitting review:", err); showModal('Error', 'Gagal mengirim ulasan.');
+            } finally { hideLoading(); }
+        }
+    });
 });
 </script>
 </body>
